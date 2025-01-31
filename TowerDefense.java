@@ -338,11 +338,13 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 				}
 			}
 			for(int i = 0; i < enemyStatusList.size(); i++) {
-				g.setColor(new Color(255, 0, 0, 30));
-				g.fillOval(enemyPlacementList.get(i).get(0) + CORRECTION_POSITION - enemyStatusList.get(i).get(4),
-						enemyPlacementList.get(i).get(1) + CORRECTION_POSITION - enemyStatusList.get(i).get(4),
-						enemyStatusList.get(i).get(4) * 2 + UNIT_SIZE,
-						enemyStatusList.get(i).get(4) * 2 + UNIT_SIZE);
+				if(enemyList.get(i).get(2) <= gameTime) {
+					g.setColor(new Color(255, 0, 0, 30));
+					g.fillOval(enemyPlacementList.get(i).get(0) + CORRECTION_POSITION - enemyStatusList.get(i).get(4),
+							enemyPlacementList.get(i).get(1) + CORRECTION_POSITION - enemyStatusList.get(i).get(4),
+							enemyStatusList.get(i).get(4) * 2 + UNIT_SIZE,
+							enemyStatusList.get(i).get(4) * 2 + UNIT_SIZE);
+				}
 			}
 		}
 	}
