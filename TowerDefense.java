@@ -135,15 +135,6 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	List<List<Integer>> allUnitPlacementList;
 	List<List<List<Integer>>> moveList;
 	List<List<Integer>> enemyList;
-	SoldierInitialData SoldierInitialData = new SoldierInitialData();
-	PlacementInitialData PlacementInitialData = new PlacementInitialData();
-	EnemyInitialData EnemyInitialData = new EnemyInitialData();
-	List<BufferedImage> defaultSodierImageList = new ArrayList<>();
-	List<List<Integer>> defaultSodierStatusList = new ArrayList<>();
-	List<List<ValueRange>> defualtUnitPlacementList = new ArrayList<>();
-	List<BufferedImage> defaultPlacementImageList = new ArrayList<>();
-	List<BufferedImage> defaultEnemyImageList = new ArrayList<>();
-	List<List<Integer>> defaultEnemyStatusList = new ArrayList<>();
 	List<BufferedImage> enemyImageList = new ArrayList<>();
 	List<List<Integer>> enemyStatusList = new ArrayList<>();
 	List<List<Integer>> enemyPlacementList = new ArrayList<>();
@@ -190,18 +181,12 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 				.collect(Collectors.toList());
 		residueAllUnitPlacementList = Stream.concat(residueNearUnitPlacementList.stream(), farUnitPlacementList.stream())
 				.collect(Collectors.toList());
-		defaultSodierImageList = SoldierInitialData.soldierImage();
-		defaultSodierStatusList = SoldierInitialData.soldierStatus();
-		defualtUnitPlacementList = SoldierInitialData.unitPlacement();
-		defaultPlacementImageList = PlacementInitialData.placementImage();
-		defaultEnemyImageList = EnemyInitialData.enemyImage();
-		defaultEnemyStatusList = EnemyInitialData.enemyStatus();
 		for(int i = 0; i < this.enemyList.size(); i ++) {
-			enemyImageList.add(defaultEnemyImageList.get(this.enemyList.get(i).get(0) * 2));
-			enemyStatusList.add(new ArrayList<>(defaultEnemyStatusList.get(this.enemyList.get(i).get(0))));
+			enemyImageList.add(EnemyInitialData.ENEMY_IMAGE_LIST.get(this.enemyList.get(i).get(0) * 2));
+			enemyStatusList.add(new ArrayList<>(EnemyInitialData.ENEMY_STATUS_LIST.get(this.enemyList.get(i).get(0))));
 			enemyPlacementList.add(new ArrayList<>(this.moveList.get(this.enemyList.get(i).get(1)).get(0)));
 			EnemyMoveList.add(new EnemyMove(this.moveList.get(this.enemyList.get(i).get(1)), this.enemyList.get(i), enemyStatusList.get(i), enemyPlacementList.get(i)));
-			EnemyMotionList.add(new EnemyMotion(enemyStatusList.size() - 1, enemyImageList, defaultEnemyImageList.get(this.enemyList.get(i).get(0) * 2), defaultEnemyImageList.get(this.enemyList.get(i).get(0) * 2 + 1), enemyStatusList, EnemyMoveList.get(i)));
+			EnemyMotionList.add(new EnemyMotion(enemyStatusList.size() - 1, enemyImageList, EnemyInitialData.ENEMY_IMAGE_LIST.get(this.enemyList.get(i).get(0) * 2), EnemyInitialData.ENEMY_IMAGE_LIST.get(this.enemyList.get(i).get(0) * 2 + 1), enemyStatusList, EnemyMoveList.get(i)));
 		}
     }
     
@@ -224,9 +209,9 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	public void mousePressed(MouseEvent e) {
 		mouseX = e.getX();
 		mouseY = e.getY();
-		for(int i = 0; i < defualtUnitPlacementList.size(); i++) {
-			if(defualtUnitPlacementList.get(i).get(0).isValidIntValue(mouseX)
-					&& defualtUnitPlacementList.get(i).get(1).isValidIntValue(mouseY)){
+		for(int i = 0; i < SoldierInitialData.UNIT_PLACEMENT_LIST.size(); i++) {
+			if(SoldierInitialData.UNIT_PLACEMENT_LIST.get(i).get(0).isValidIntValue(mouseX)
+					&& SoldierInitialData.UNIT_PLACEMENT_LIST.get(i).get(1).isValidIntValue(mouseY)){
 				unitNumber = i;
 				canSelect = true;
 	    		break;
@@ -311,17 +296,17 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		rangeONButton.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 15));
 		rangeONButton.setBounds(1060,475,100,50);
 		g.drawImage(fieldImageList.get(0), 0, 0, this);
-		for(int i = 0; i < defaultSodierImageList.size(); i += 2) {
-			g.drawImage(defaultSodierImageList.get(i), 1015 + i % 4 * 50, 55 + i / 4 * 100, this);
+		for(int i = 0; i < SoldierInitialData.SOLDIER_IMAGE_LIST.size(); i += 2) {
+			g.drawImage(SoldierInitialData.SOLDIER_IMAGE_LIST.get(i), 1015 + i % 4 * 50, 55 + i / 4 * 100, this);
 		}
 		for(List<Integer> i : nearUnitPlacementList) {
-			g.drawImage(defaultPlacementImageList.get(0), i.get(0), i.get(1), this);
+			g.drawImage(PlacementInitialData.PLACEMENT_IMAGE_LIST.get(0), i.get(0), i.get(1), this);
 		}
 		for(List<Integer> i : farUnitPlacementList) {
-			g.drawImage(defaultPlacementImageList.get(1), i.get(0), i.get(1), this);
+			g.drawImage(PlacementInitialData.PLACEMENT_IMAGE_LIST.get(1), i.get(0), i.get(1), this);
 		}
 		for(List<Integer> i : allUnitPlacementList) {
-			g.drawImage(defaultPlacementImageList.get(2), i.get(0), i.get(1), this);
+			g.drawImage(PlacementInitialData.PLACEMENT_IMAGE_LIST.get(2), i.get(0), i.get(1), this);
 		}
 	}
 	
@@ -330,16 +315,18 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		if(existsRangeDisplay) {
 			if(!(soldierStatusList.size() == 0)) {
 				for(int i = 0; i < soldierStatusList.size(); i++) {
-					g.setColor(new Color(255, 0, 0, 30));
-					g.fillOval(soldierPlacementList.get(i).get(0) + CORRECTION_POSITION - soldierStatusList.get(i).get(4),
-							soldierPlacementList.get(i).get(1) + CORRECTION_POSITION - soldierStatusList.get(i).get(4),
-							soldierStatusList.get(i).get(4) * 2 + UNIT_SIZE,
-							soldierStatusList.get(i).get(4) * 2 + UNIT_SIZE);
+					if(0 < soldierStatusList.get(i).get(1)) {
+						g.setColor(new Color(0, 0, 255, 20));
+						g.fillOval(soldierPlacementList.get(i).get(0) + CORRECTION_POSITION - soldierStatusList.get(i).get(4),
+								soldierPlacementList.get(i).get(1) + CORRECTION_POSITION - soldierStatusList.get(i).get(4),
+								soldierStatusList.get(i).get(4) * 2 + UNIT_SIZE,
+								soldierStatusList.get(i).get(4) * 2 + UNIT_SIZE);
+					}
 				}
 			}
 			for(int i = 0; i < enemyStatusList.size(); i++) {
 				if(enemyList.get(i).get(2) <= gameTime) {
-					g.setColor(new Color(255, 0, 0, 30));
+					g.setColor(new Color(255, 0, 0, 20));
 					g.fillOval(enemyPlacementList.get(i).get(0) + CORRECTION_POSITION - enemyStatusList.get(i).get(4),
 							enemyPlacementList.get(i).get(1) + CORRECTION_POSITION - enemyStatusList.get(i).get(4),
 							enemyStatusList.get(i).get(4) * 2 + UNIT_SIZE,
@@ -389,7 +376,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	//ユニット移動
 	private void placementDraw(Graphics g) {
 		if(canSelect) {
-			g.drawImage(defaultSodierImageList.get(unitNumber * 2), mouseX - 50, mouseY - 50, this);
+			g.drawImage(SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2), mouseX - 50, mouseY - 50, this);
 		}
 	}
 	
@@ -435,26 +422,22 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	private boolean placementDetermination(List<Integer> placementList) {
 		if(ValueRange.of(placementList.get(0), placementList.get(0) + UNIT_SIZE).isValidIntValue(mouseX)
 				&& ValueRange.of(placementList.get(1), placementList.get(1) + UNIT_SIZE).isValidIntValue(mouseY)) {
-			soldierImageList.add(defaultSodierImageList.get(unitNumber * 2));
-			soldierStatusList.add(new ArrayList<>(defaultSodierStatusList.get(unitNumber)));
+			for(int i = 0; i < soldierPlacementList.size(); i++) {
+				if(0 < soldierStatusList.get(i).get(1) && soldierPlacementList.get(i).get(0) == placementList.get(0) - CORRECTION_POSITION && soldierPlacementList.get(i).get(1) == placementList.get(1) - CORRECTION_POSITION){
+					return false;
+				}
+			}
+			soldierImageList.add(SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2));
+			soldierStatusList.add(new ArrayList<>(SoldierInitialData.SOLDIER_STATUS_LIST.get(unitNumber)));
 			soldierPlacementList.add(Arrays.asList(placementList.get(0) - CORRECTION_POSITION, placementList.get(1) - CORRECTION_POSITION));
-			SoldierMotionList.add(new SoldierMotion(soldierStatusList.size() - 1, soldierImageList, defaultSodierImageList.get(unitNumber * 2), defaultSodierImageList.get(unitNumber * 2 + 1), soldierStatusList));
-			if(residueNearUnitPlacementList.contains(placementList)) {
-				residueNearUnitPlacementList.remove(residueNearUnitPlacementList.indexOf(placementList));
-			}
-			if(residueFarUnitPlacementList.contains(placementList)) {
-				residueFarUnitPlacementList.remove(residueFarUnitPlacementList.indexOf(placementList));
-			}
-			if(residueAllUnitPlacementList.contains(placementList)) {
-				residueAllUnitPlacementList.remove(residueAllUnitPlacementList.indexOf(placementList));
-			}
+			SoldierMotionList.add(new SoldierMotion(soldierStatusList.size() - 1, soldierImageList, SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2), SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2 + 1), soldierStatusList));
 			return true;
 		}
 		return false;
 	}
 }
 
-//extends用基本行動
+//基本行動
 class Motion{
 	Timer timer;
 	int number;
@@ -692,7 +675,7 @@ class InputImage{
 
 //自軍データ
 class SoldierInitialData{
-	List<String> sodierNameList = Arrays.asList(
+	final static List<String> SOLDIER_NAME_LIST = Arrays.asList(
 			"image/soldier/sord normal.png",
 			"image/soldier/sord action.png",
 			"image/soldier/spear normal.png",
@@ -709,7 +692,7 @@ class SoldierInitialData{
 			"image/soldier/hammer action.png",
 			"image/soldier/fan normal.png",
 			"image/soldier/fan action.png");
-	List<List<Integer>> soldierStatusList = Arrays.asList(
+	final static List<List<Integer>> SOLDIER_STATUS_LIST = Arrays.asList(
 			Arrays.asList(1000, 1000, 100, 100, 20, 1000),//sord
 			Arrays.asList(700, 700, 70, 70, 50, 700),//spear
 			Arrays.asList(3000, 3000, 30, 300, 20, 1500),//shield
@@ -718,7 +701,7 @@ class SoldierInitialData{
 			Arrays.asList(800, 800, 150, 70, 200, 2000),//gun
 			Arrays.asList(1000, 1000, 50, 100, 100, 1000),//hammer
 			Arrays.asList(1000, 1000, 0, 100, 100, 1000));//fan
-	List<List<ValueRange>> unitPlacementList = Arrays.asList(
+	final static List<List<ValueRange>> UNIT_PLACEMENT_LIST = Arrays.asList(
 			Arrays.asList(ValueRange.of(1040, 1085), ValueRange.of(80, 125)),//sord
 			Arrays.asList(ValueRange.of(1140, 1185), ValueRange.of(80, 125)),//spear
 			Arrays.asList(ValueRange.of(1040, 1080), ValueRange.of(175, 225)),//shield
@@ -727,41 +710,21 @@ class SoldierInitialData{
 			Arrays.asList(ValueRange.of(1140, 1180), ValueRange.of(280, 320)),//gun
 			Arrays.asList(ValueRange.of(1035, 1085), ValueRange.of(375, 425)),//hammer
 			Arrays.asList(ValueRange.of(1135, 1190), ValueRange.of(380, 420)));//fan
-	InputImage InputImage = new InputImage();
-	List<BufferedImage> sodierImageList = new ArrayList<>();
-	
-	protected List<BufferedImage> soldierImage() {
-		sodierImageList = InputImage.Input(sodierNameList);
-		return sodierImageList;
-	}
-	
-	protected List<List<Integer>> soldierStatus() {
-		return soldierStatusList;
-	}
-	
-	protected List<List<ValueRange>> unitPlacement(){
-		return unitPlacementList;
-	}
+	final static List<BufferedImage> SOLDIER_IMAGE_LIST = new InputImage().Input(SOLDIER_NAME_LIST);
 }
 
 //配置位置データ
 class PlacementInitialData{
-	List<String> placementNameList = Arrays.asList(
+	final static List<String> PLACEMENT_NAME_LIST = Arrays.asList(
 			"image/soldier/near placement.png",
 			"image/soldier/far placement.png",
 			"image/soldier/all placement.png");
-	InputImage InputImage = new InputImage();
-	List<BufferedImage> placementImageList = new ArrayList<>();
-	
-	protected List<BufferedImage> placementImage(){
-		placementImageList = InputImage.Input(placementNameList);
-		return placementImageList;
-	}
+	final static List<BufferedImage> PLACEMENT_IMAGE_LIST = new InputImage().Input(PLACEMENT_NAME_LIST);
 }
 
 //敵軍データ
 class EnemyInitialData{
-	List<String> enemyNameList = Arrays.asList(
+	final static List<String> ENEMY_NAME_LIST = Arrays.asList(
 			"image/enemy/blue slime normal.png",
 			"image/enemy/blue slime action.png",
 			"image/enemy/green slime normal.png",
@@ -770,22 +733,12 @@ class EnemyInitialData{
 			"image/enemy/red slime action.png",
 			"image/enemy/yellow slime normal.png",
 			"image/enemy/yellow slime action.png");
-	List<List<Integer>> enemyStatusList = Arrays.asList(
+	final static List<List<Integer>> ENEMY_STATUS_LIST = Arrays.asList(
 			Arrays.asList(1000, 1000, 20, 20, 20, 1000, 100),//1: blue slime
 			Arrays.asList(2000, 2000, 20, 20, 20, 1000, 100),//2: green slime
 			Arrays.asList(1000, 1000, 40, 20, 20, 1000, 100),//3: red slime
 			Arrays.asList(1000, 1000, 20, 20, 20, 1000, 50));//4: yellow slime
-	InputImage InputImage = new InputImage();
-	List<BufferedImage> enemyImageList = new ArrayList<>();
-	
-	protected List<BufferedImage> enemyImage(){
-		enemyImageList = InputImage.Input(enemyNameList);
-		return enemyImageList;
-	}
-	
-	protected List<List<Integer>> enemyStatus(){
-		return enemyStatusList;
-	}
+	final static List<BufferedImage> ENEMY_IMAGE_LIST = new InputImage().Input(ENEMY_NAME_LIST);
 }
 
 
@@ -835,11 +788,9 @@ class Stage1InitialData {
 			Arrays.asList(3, 1, 100),
 			Arrays.asList(1, 0, 200),
 			Arrays.asList(2, 0, 300));
-	InputImage InputImage = new InputImage();
-	List<BufferedImage> fieldImageList = new ArrayList<>();
+	List<BufferedImage> fieldImageList = new InputImage().Input(fieldNameList);
 	
 	protected Stage1InitialData() {
-		fieldImageList = InputImage.Input(fieldNameList);
 		new StageFrame(fieldImageList, nearUnitPlacementList, farUnitPlacementList, allUnitPlacementList, moveList, enemyList);
 	}
 }
