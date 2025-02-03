@@ -154,8 +154,9 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	List<List<Integer>> residueAllUnitPlacementList = new ArrayList<>();
 	List<SoldierMotion> SoldierMotionList = new ArrayList<>();
 	AttackJudgment AttackJudgment = new AttackJudgment();
+	int target;
+	boolean existsGameComplete;
 	boolean existsGameOver;
-	Font font = new Font("Aria", Font.BOLD|Font.ITALIC, 150);
 	
 	//初期設定取り込み
     protected StagePanel(List<BufferedImage> fieldImageList, List<List<Integer>> nearUnitPlacementList, List<List<Integer>> farUnitPlacementList, List<List<Integer>> allUnitPlacementList, List<List<List<Integer>>> moveList,	List<List<Integer>> enemyList) {
@@ -186,7 +187,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 			enemyStatusList.add(new ArrayList<>(EnemyInitialData.ENEMY_STATUS_LIST.get(this.enemyList.get(i).get(0))));
 			enemyPlacementList.add(new ArrayList<>(this.moveList.get(this.enemyList.get(i).get(1)).get(0)));
 			EnemyMoveList.add(new EnemyMove(this.moveList.get(this.enemyList.get(i).get(1)), this.enemyList.get(i), enemyStatusList.get(i), enemyPlacementList.get(i)));
-			EnemyMotionList.add(new EnemyMotion(enemyStatusList.size() - 1, enemyImageList, EnemyInitialData.ENEMY_IMAGE_LIST.get(this.enemyList.get(i).get(0) * 2), EnemyInitialData.ENEMY_IMAGE_LIST.get(this.enemyList.get(i).get(0) * 2 + 1), enemyStatusList, EnemyMoveList.get(i)));
+			EnemyMotionList.add(new EnemyMotion(enemyStatusList.size() - 1, enemyImageList, EnemyInitialData.ENEMY_IMAGE_LIST.get(this.enemyList.get(i).get(0) * 2), EnemyInitialData.ENEMY_IMAGE_LIST.get(this.enemyList.get(i).get(0) * 2 + 1), enemyStatusList, soldierStatusList, EnemyMoveList.get(i), SoldierMotionList));
 		}
     }
     
@@ -198,7 +199,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		enemyDraw(g);
 		soldierDraw(g);
 		placementDraw(g);
-		gameOverDraw(g);
+		gameEnd(g);
     }
     
     //ユニット操作
@@ -325,7 +326,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 				}
 			}
 			for(int i = 0; i < enemyStatusList.size(); i++) {
-				if(enemyList.get(i).get(2) <= gameTime) {
+				if(enemyList.get(i).get(2) <= gameTime && 0 < enemyStatusList.get(i).get(1)) {
 					g.setColor(new Color(255, 0, 0, 20));
 					g.fillOval(enemyPlacementList.get(i).get(0) + CORRECTION_POSITION - enemyStatusList.get(i).get(4),
 							enemyPlacementList.get(i).get(1) + CORRECTION_POSITION - enemyStatusList.get(i).get(4),
@@ -342,8 +343,9 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 			if(enemyList.get(i).get(2) == gameTime) {
 				EnemyMoveList.get(i).enemyMoveStart();
 			}else if(enemyList.get(i).get(2) < gameTime && 0 < enemyStatusList.get(i).get(1)) {
-				if(AttackJudgment.judgment(enemyStatusList.get(i).get(4), enemyPlacementList.get(i), soldierPlacementList, soldierStatusList)) {
-					EnemyMotionList.get(i).enemyMotionStart();
+				target = AttackJudgment.judgment(enemyStatusList.get(i).get(4), enemyPlacementList.get(i), soldierPlacementList, soldierStatusList);
+				if(0 <= target) {
+					EnemyMotionList.get(i).enemyMotionStart(target);
 				}else {
 					EnemyMotionList.get(i).enemyMotionStop();
 				}
@@ -361,8 +363,9 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		if(!(soldierImageList.size() == 0)) {
 			for(int i = 0; i < soldierImageList.size(); i++) {
 				if(0 < soldierStatusList.get(i).get(1)) {
-					if(AttackJudgment.judgment(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, enemyStatusList)) {
-						SoldierMotionList.get(i).soldierMotionStart();
+					target = AttackJudgment.judgment(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, enemyStatusList);
+					if(0 <= target) {
+						SoldierMotionList.get(i).soldierMotionStart(target);
 					}else {
 						SoldierMotionList.get(i).soldierMotionStop();
 					}
@@ -380,19 +383,35 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		}
 	}
 	
-	//ゲームオーバー
-	private void gameOverDraw(Graphics g) {
-		if(existsGameOver) {
+	//ゲーム終了
+	private void gameEnd(Graphics g) {
+		existsGameComplete = true;
+		for(List<Integer> i: enemyStatusList) {
+			if(0 < i.get(1)) {
+				existsGameComplete = false;
+				break;
+			}
+		}
+		if(existsGameOver || existsGameComplete) {
 	    	Graphics2D g2d = (Graphics2D) g;
+	    	Font endFont = new Font("Aria", Font.BOLD|Font.ITALIC, 150);
 			g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-			g2d.setColor(Color.BLACK);
-			g2d.setStroke(new BasicStroke(10));
-			g2d.draw(font.createGlyphVector(g2d.getFontRenderContext(),"GAME").getOutline(400, 250));
-			g2d.draw(font.createGlyphVector(g2d.getFontRenderContext(),"OVER").getOutline(400, 400));
-			g2d.setFont(font);
-			g2d.setColor(Color.RED);
-			g2d.drawString("GAME",400,250);
-			g2d.drawString("OVER",400,400);
+			g2d.setFont(endFont);
+			if(existsGameOver) {
+				g2d.setColor(Color.BLACK);
+				g2d.setStroke(new BasicStroke(10));
+				g2d.draw(endFont.createGlyphVector(g2d.getFontRenderContext(),"GAME").getOutline(400, 250));
+				g2d.draw(endFont.createGlyphVector(g2d.getFontRenderContext(),"OVER").getOutline(400, 400));
+				g2d.setColor(Color.RED);
+				g2d.drawString("GAME",400,250);
+				g2d.drawString("OVER",400,400);
+			}else {
+				g2d.setColor(Color.RED);
+				g2d.setStroke(new BasicStroke(10));
+				g2d.draw(endFont.createGlyphVector(g2d.getFontRenderContext(),"CLEAR").getOutline(400, 300));
+				g2d.setColor(Color.YELLOW);
+				g2d.drawString("CLEAR",400,300);
+			}
 			for(int i = 0; i < SoldierMotionList.size(); i ++) {
 				SoldierMotionList.get(i).soldierMotionStop();
 			}
@@ -405,6 +424,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 			timer.stop();
 			removeMouseListener(this);
 	    	removeMouseMotionListener(this);
+	    	remove(rangeONButton);
 		}
 	}
 	
@@ -430,7 +450,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 			soldierImageList.add(SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2));
 			soldierStatusList.add(new ArrayList<>(SoldierInitialData.SOLDIER_STATUS_LIST.get(unitNumber)));
 			soldierPlacementList.add(Arrays.asList(placementList.get(0) - CORRECTION_POSITION, placementList.get(1) - CORRECTION_POSITION));
-			SoldierMotionList.add(new SoldierMotion(soldierStatusList.size() - 1, soldierImageList, SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2), SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2 + 1), soldierStatusList));
+			SoldierMotionList.add(new SoldierMotion(soldierStatusList.size() - 1, soldierImageList, SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2), SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2 + 1), soldierStatusList, enemyStatusList, EnemyMotionList, EnemyMoveList));
 			return true;
 		}
 		return false;
@@ -443,75 +463,107 @@ class Motion{
 	int number;
 	List<BufferedImage> imageList;
 	BufferedImage defaultNormalImage;
-	BufferedImage defaultActonImage;
+	BufferedImage defaultActionImage;
 	List<Integer> statusList;
+	List<List<Integer>> anotherStatusList;
+	int target;
+	DamageCalculation DamageCalculation = new DamageCalculation();
 	
-	protected void motion(int number, List<BufferedImage> imageList, BufferedImage defaultNormalImage, BufferedImage defaultActonImage, List<List<Integer>> statusList) {
+	protected void motion(int number, List<BufferedImage> imageList, BufferedImage defaultNormalImage, BufferedImage defaultActionImage, List<List<Integer>> statusList, List<List<Integer>> anotherStatusList) {
 		this.number = number;
 		this.imageList = imageList;
 		this.defaultNormalImage = defaultNormalImage;
-		this.defaultActonImage = defaultActonImage;
+		this.defaultActionImage = defaultActionImage;
 		this.statusList = statusList.get(this.number);
+		this.anotherStatusList = anotherStatusList;
 	}
 }
 
 //自軍行動
 class SoldierMotion extends Motion implements ActionListener{
-	protected SoldierMotion(int soldierNumber, List<BufferedImage> soldierImageList, BufferedImage defaultNormalSoldierImage, BufferedImage defaultActonSoldierImage, List<List<Integer>> soldierStatusList) {
-		super.motion(soldierNumber, soldierImageList, defaultNormalSoldierImage, defaultActonSoldierImage, soldierStatusList);
+	List<EnemyMotion> AnotherMotionList;
+	List<EnemyMove> AnotherMoveList;
+	
+	protected SoldierMotion(int soldierNumber, List<BufferedImage> soldierImageList, BufferedImage defaultNormalSoldierImage, BufferedImage defaultActionSoldierImage, List<List<Integer>> soldierStatusList, List<List<Integer>> anotherStatusList, List<EnemyMotion> AnotherMotionList, List<EnemyMove> AnotherMoveList) {
+		super.motion(soldierNumber, soldierImageList, defaultNormalSoldierImage, defaultActionSoldierImage, soldierStatusList,anotherStatusList);
+		this.AnotherMotionList = AnotherMotionList;
+		this.AnotherMoveList = AnotherMoveList;
 		timer = new Timer(statusList.get(5),this);
 		timer.setInitialDelay(100);
 	}
 	
-	protected void soldierMotionStart() {
+	protected void soldierMotionStart(int target) {
 		if(!timer.isRunning()) {
+			timer.setRepeats(true);
 			timer.restart();
 		}
+		this.target = target;
 	}
 	
 	protected void soldierMotionStop() {
-		imageList.set(number, defaultNormalImage);
-		timer.stop();
+		if(imageList.get(number) == defaultActionImage) {
+			timer.setRepeats(false);
+		}else {
+			timer.stop();
+		}
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		imageList.set(number, 
-				(imageList.get(number) == defaultActonImage)
-				? defaultNormalImage: defaultActonImage);
+		if(imageList.get(number) == defaultActionImage) {
+			imageList.set(number, defaultNormalImage);
+		}else {
+			imageList.set(number, defaultActionImage);
+			anotherStatusList.get(target).set(1, anotherStatusList.get(target).get(1) - DamageCalculation.calculation(statusList.get(2), anotherStatusList.get(target).get(3)));
+			if(anotherStatusList.get(target).get(1) <= 0) {
+				AnotherMotionList.get(target).enemyMotionStop();
+				AnotherMoveList.get(target).enemyMoveStop();
+			}
+		}
 	}
 }
 
 //敵軍行動
 class EnemyMotion extends Motion implements ActionListener{
 	EnemyMove EnemyMove;
+	List<SoldierMotion> AnotherMotionList;
 	
-	protected EnemyMotion(int enemyNumber, List<BufferedImage> enemyImageList, BufferedImage defaultNormalEnemyImage, BufferedImage defaultActonEnemyImage, List<List<Integer>> enemyStatusList, EnemyMove EnemyMove) {
-		super.motion(enemyNumber, enemyImageList, defaultNormalEnemyImage, defaultActonEnemyImage, enemyStatusList);
+	protected EnemyMotion(int enemyNumber, List<BufferedImage> enemyImageList, BufferedImage defaultNormalEnemyImage, BufferedImage defaultActionEnemyImage, List<List<Integer>> enemyStatusList, List<List<Integer>> anotherStatusList, EnemyMove EnemyMove, List<SoldierMotion> AnotherMotionList) {
+		super.motion(enemyNumber, enemyImageList, defaultNormalEnemyImage, defaultActionEnemyImage, enemyStatusList, anotherStatusList);
 		this.EnemyMove = EnemyMove;
+		this.AnotherMotionList = AnotherMotionList;
 		timer = new Timer(statusList.get(5),this);
 		timer.setInitialDelay(100);
 	}
 	
-	protected void enemyMotionStart() {
+	protected void enemyMotionStart(int target) {
 		if(!timer.isRunning()) {
+			timer.setRepeats(true);
 			timer.restart();
 		}
+		this.target = target;
 	}
 	
 	protected void enemyMotionStop() {
-		imageList.set(number, defaultNormalImage);
-		timer.stop();
+		if(imageList.get(number) == defaultActionImage) {
+			timer.setRepeats(false);
+		}else {
+			timer.stop();
+		}
 	}
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if(imageList.get(number) == defaultActonImage) {
+		if(imageList.get(number) == defaultActionImage) {
 			imageList.set(number, defaultNormalImage);
 			EnemyMove.enemyMoveStart();
 		}else {
-			imageList.set(number, defaultActonImage);
+			imageList.set(number, defaultActionImage);
 			EnemyMove.enemyMoveStop();
+			anotherStatusList.get(target).set(1, anotherStatusList.get(target).get(1) - DamageCalculation.calculation(statusList.get(2), anotherStatusList.get(target).get(3)));
+			if(anotherStatusList.get(target).get(1) <= 0) {
+				AnotherMotionList.get(target).soldierMotionStop();
+			}
 		}
 	}
 }
@@ -538,7 +590,7 @@ class EnemyMove implements ActionListener{
 	
 	protected void enemyMoveStart() {
 		if(!timer.isRunning()) {
-			timer.start();
+			timer.restart();
 		}
 	}
 	
@@ -605,24 +657,39 @@ class EnemyMove implements ActionListener{
 class AttackJudgment{
 	double distance;
 	double minDistance;
+	int target;
 	
-	protected boolean judgment(int atackRange, List<Integer> placement, List<List<Integer>> anotherPlacementList, List<List<Integer>> anotherStatusList) {
+	protected int judgment(int atackRange, List<Integer> placement, List<List<Integer>> anotherPlacementList, List<List<Integer>> anotherStatusList) {
 		minDistance = 0;
 		for(int i = 0; i < anotherPlacementList.size(); i++) {
-			if(!(anotherStatusList.get(i).get(1) == 0)) {
+			if(0 < anotherStatusList.get(i).get(1)) {
 				distance = (double) Math.sqrt(Math.pow(placement.get(0) - anotherPlacementList.get(i).get(0), 2) + Math.pow(placement.get(1) - anotherPlacementList.get(i).get(1), 2));
 				if(minDistance == 0) {
 					minDistance = distance;
+					target = i;
 				}else {
-					minDistance = (minDistance <= distance)? minDistance: distance;
+					if(distance < minDistance) {
+						minDistance = distance;
+						target = i;
+					}
 				}
 			}
 		}
 		if(minDistance == 0) {
-			return false;
+			return -1;
 		}else {
-			return (minDistance <= atackRange + StagePanel.UNIT_SIZE)? true: false;
+			return (minDistance <= atackRange + StagePanel.UNIT_SIZE)? target: -1;
 		}
+	}
+}
+
+//ダメージ計算
+class DamageCalculation{
+	double damage;
+	
+	protected int calculation(int atack, int defence) {
+		damage = (double) 100 * atack / defence;
+		return (int) damage;
 	}
 }
 
