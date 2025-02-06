@@ -8,6 +8,7 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Point;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -164,7 +165,9 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	List<List<Integer>> residueAllUnitPlacementList = new ArrayList<>();
 	List<SoldierMotion> SoldierMotionList = new ArrayList<>();
 	AttackJudgment AttackJudgment = new AttackJudgment();
+	UnitOperation UnitOperation = new UnitOperation();
 	int target;
+	int operation;
 	boolean existsGameComplete;
 	boolean existsGameOver;
 	
@@ -239,33 +242,50 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	    		break;
 	    	}
 		}
+		if(!canSelect){
+			for(int i = 0; i < soldierPlacementList.size(); i++) {
+				if(existsActiveSoldierList.get(i)) {
+					if(ValueRange.of(soldierPlacementList.get(i).get(0), soldierPlacementList.get(i).get(0) + UNIT_SIZE).isValidIntValue(mouseX)
+							&& ValueRange.of(soldierPlacementList.get(i).get(1), soldierPlacementList.get(i).get(1) + UNIT_SIZE).isValidIntValue(mouseY)) {
+						canPause = true;
+			    		pause();
+			    		operation = UnitOperation.operation(soldierStatusList.get(i), getLocationOnScreen(), mouseX, mouseY);
+			    		canPause = false;
+			    		restart();
+			    		break;
+					}
+				}
+			}
+		}
 		repaint();
 	}
 	@Override
 	public void mouseReleased(MouseEvent e) {
-		mouseX = e.getX();
-		mouseY = e.getY();
-		if(unitNumber <= 2) {
-			for(List<Integer> i : residueNearUnitPlacementList) {
-				if(placementDetermination(i)) {
-					break;
+		if(canSelect) {
+			mouseX = e.getX();
+			mouseY = e.getY();
+			if(unitNumber <= 2) {
+				for(List<Integer> i : residueNearUnitPlacementList) {
+					if(placementDetermination(i)) {
+						break;
+					}
+				}
+			}else if(3 <= unitNumber && unitNumber <= 5){
+				for(List<Integer> i : residueFarUnitPlacementList) {
+					if(placementDetermination(i)) {
+						break;
+					}
+				}
+			}else if(6 <= unitNumber) {
+				for(List<Integer> i : residueAllUnitPlacementList) {
+					if(placementDetermination(i)) {
+						break;
+					}
 				}
 			}
-		}else if(3 <= unitNumber && unitNumber <= 5){
-			for(List<Integer> i : residueFarUnitPlacementList) {
-				if(placementDetermination(i)) {
-					break;
-				}
-			}
-		}else if(6 <= unitNumber) {
-			for(List<Integer> i : residueAllUnitPlacementList) {
-				if(placementDetermination(i)) {
-					break;
-				}
-			}
+			canSelect = false;
+			repaint();
 		}
-		canSelect = false;
-		repaint();
 	}
 	@Override
 	public void mouseEntered(MouseEvent e) {
@@ -275,9 +295,11 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	}
 	@Override
 	public void mouseDragged(MouseEvent e) {
-		mouseX = e.getX();
-		mouseY = e.getY();
-		repaint();
+		if(canSelect) {
+			mouseX = e.getX();
+			mouseY = e.getY();
+			repaint();
+		}
 	}
 	@Override
 	public void mouseMoved(MouseEvent e) {
@@ -782,6 +804,36 @@ class DamageCalculation{
 	protected int calculation(int atack, int defence) {
 		damage = (double) 100 * atack / defence;
 		return (int) damage;
+	}
+}
+
+//ユニット操作
+class UnitOperation{
+	String selectMenu[] = {"退却", "HP UP", "攻撃 UP", "防御 UP", "射程 UP"};
+	String comment;
+	int operation;
+	
+	protected int operation(List<Integer> statusList, Point location, int x, int y) {
+		JFrame frame = new JFrame();
+		frame.setLocation((int) location.getX() + x - 65, (int) location.getX() + y);
+		frame.setVisible(true);
+		comment ="ユニット操作を選択してください\n"
+				+ "\n"
+				+ "ステータス\n"
+				+ "HP: " + statusList.get(0) + "/" + statusList.get(1) + "\n"
+				+ "攻撃: " + statusList.get(2) + "\n"
+				+ "防御: " + statusList.get(3) + "\n"
+				+ "射程: " + statusList.get(4) + "\n"
+				+ "攻撃速度: " + statusList.get(5);
+		try {
+			comment += "\n" + "移動速度: " + statusList.get(6);
+			operation = showOptionDialog(frame, comment, "ユニット操作", OK_CANCEL_OPTION, PLAIN_MESSAGE, null, null, null);
+		}catch(Exception noData) {
+			operation = showOptionDialog(frame, comment, "ユニット操作", OK_CANCEL_OPTION, PLAIN_MESSAGE, null, selectMenu, selectMenu[0]);
+		}
+		frame.dispose();
+		//表示位置に関しては要改善
+		return operation;
 	}
 }
 
