@@ -158,6 +158,8 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	List<Boolean> existsActiveSoldierList = new ArrayList<>();
 	List<BufferedImage> soldierImageList = new ArrayList<>();
 	List<List<Integer>> soldierStatusList = new ArrayList<>();
+	List<List<Integer>> initialSoldierStatusList = new ArrayList<>();
+	List<List<Integer>> correctionSoldierStatusList = new ArrayList<>();
 	List<List<Integer>> soldierPlacementList = new ArrayList<>();
 	List<List<Integer>> residueNearUnitPlacementList = new ArrayList<>();
 	List<List<Integer>> residueFarUnitPlacementList = new ArrayList<>();
@@ -165,7 +167,9 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	List<SoldierMotion> SoldierMotionList = new ArrayList<>();
 	AttackJudgment AttackJudgment = new AttackJudgment();
 	UnitOperation UnitOperation = new UnitOperation();
+	CorrectionStatus CorrectionStatus = new CorrectionStatus(soldierStatusList, initialSoldierStatusList, correctionSoldierStatusList, existsActiveSoldierList);
 	int target;
+	int operation;
 	boolean existsGameComplete;
 	boolean existsGameOver;
 	
@@ -214,6 +218,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	//画面の描写
     protected void paintComponent(Graphics g) {
     	if(!canPause) {
+    		CorrectionStatus.correction();
     		atack();
     	}
     	super.paintComponent(g);
@@ -248,8 +253,8 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 								&& ValueRange.of(soldierPlacementList.get(i).get(1), soldierPlacementList.get(i).get(1) + UNIT_SIZE).isValidIntValue(mouseY)) {
 							canPause = true;
 				    		pause();
-				    		UnitOperation.operation(soldierStatusList.get(i), soldierImageList.get(i));
-				    		UnitOperation.process(i, existsActiveSoldierList, soldierStatusList.get(i));
+				    		operation = UnitOperation.operation(soldierStatusList.get(i), soldierImageList.get(i));
+				    		CorrectionStatus.unitEnhancement(i, operation);
 				    		canPause = false;
 				    		restart();
 				    		break exit;
@@ -481,6 +486,8 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 			existsActiveSoldierList.add(true);
 			soldierImageList.add(SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2));
 			soldierStatusList.add(new ArrayList<>(SoldierInitialData.SOLDIER_STATUS_LIST.get(unitNumber)));
+			initialSoldierStatusList.add(new ArrayList<>(SoldierInitialData.SOLDIER_STATUS_LIST.get(unitNumber)));
+			correctionSoldierStatusList.add(Arrays.asList(0, 0, 0, 0, 0, 0));
 			soldierPlacementList.add(Arrays.asList(placementList.get(0) - CORRECTION_POSITION, placementList.get(1) - CORRECTION_POSITION));
 			SoldierMotionList.add(new SoldierMotion(soldierStatusList.size() - 1, soldierImageList, SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2), SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2 + 1), soldierStatusList, enemyStatusList, existsActiveEnemyList, EnemyMoveList, EnemyMotionList));
 			return true;
@@ -490,29 +497,42 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	
 	//攻撃動作
 	private void atack() {
-		for(int i = 0; i < enemyList.size(); i++) {
-			if(existsActiveEnemyList.get(i)) {
-				target = AttackJudgment.judgmentNear(enemyStatusList.get(i).get(4), enemyPlacementList.get(i), soldierPlacementList, existsActiveSoldierList);
-				if(0 <= target) {
-					EnemyMotionList.get(i).motionStart(target);
-				}else {
-					EnemyMotionList.get(i).motionStop();
+		if(!(soldierImageList.size() == 0)) {
+			for(int i = 0; i< correctionSoldierStatusList.size(); i++) {
+				for(int j = 0; j < correctionSoldierStatusList.get(i).size(); j++) {
+					correctionSoldierStatusList.get(i).set(j, 0);
 				}
 			}
-		}
-		if(!(soldierImageList.size() == 0)) {
 			for(int i = 0; i < soldierImageList.size(); i++) {
 				if(existsActiveSoldierList.get(i)) {
 					if(0 < soldierStatusList.get(i).get(2)) {
 						target = AttackJudgment.judgmentNear(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, existsActiveEnemyList);
+					}else if(soldierStatusList.get(i).get(2) < 0){
+						target = AttackJudgment.judgmentRatio(soldierPlacementList, existsActiveSoldierList, soldierStatusList, i);
 					}else {
-						target = AttackJudgment.judgmentRatio(soldierStatusList.get(i).get(4), soldierPlacementList, existsActiveSoldierList, soldierStatusList, i);
+						target = AttackJudgment.judgmentAll(i, soldierStatusList.get(i).get(4), soldierPlacementList, existsActiveSoldierList,CorrectionStatus);
 					}
 					if(0 <= target) {
 						SoldierMotionList.get(i).motionStart(target);
 					}else {
 						SoldierMotionList.get(i).motionStop();
 					}
+				}
+			}
+		}
+		for(int i = 0; i < enemyList.size(); i++) {
+			if(existsActiveEnemyList.get(i)) {
+				if(0 < enemyStatusList.get(i).get(2)) {
+					target = AttackJudgment.judgmentNear(enemyStatusList.get(i).get(4), enemyPlacementList.get(i), soldierPlacementList, existsActiveSoldierList);
+				}else if(enemyStatusList.get(i).get(2) < 0){
+					target = AttackJudgment.judgmentRatio(enemyPlacementList, existsActiveEnemyList, enemyStatusList, i);
+				}else {
+					target = -1;
+				}
+				if(0 <= target) {
+					EnemyMotionList.get(i).motionStart(target);
+				}else {
+					EnemyMotionList.get(i).motionStop();
 				}
 			}
 		}
@@ -825,12 +845,12 @@ class AttackJudgment{
 		}
 	}
 	
-	protected int judgmentRatio(int atackRange, List<List<Integer>> placementList, List<Boolean> activeList, List<List<Integer>> statusList, int number) {
+	protected int judgmentRatio(List<List<Integer>> placementList, List<Boolean> activeList, List<List<Integer>> statusList, int number) {
 		minRatio = 1;
 		for(int i = 0; i < placementList.size(); i++) {
-			if(activeList.get(i) && !(i == number)) {
+			if(activeList.get(i)) {
 				distance = (double) Math.sqrt(Math.pow(placementList.get(number).get(0) - placementList.get(i).get(0), 2) + Math.pow(placementList.get(number).get(1) - placementList.get(i).get(1), 2));
-				if(distance <= atackRange + StagePanel.UNIT_SIZE) {
+				if(distance <= statusList.get(number).get(4) + StagePanel.UNIT_SIZE) {
 					if(statusList.get(number).get(2) == 0) {
 						return i;
 					}
@@ -847,6 +867,20 @@ class AttackJudgment{
 		}else {
 			return target;
 		}
+	}
+	
+	protected int judgmentAll(int number, int atackRange, List<List<Integer>> placementList, List<Boolean> activeList, CorrectionStatus CorrectionStatus) {
+		target = -1;
+		for(int i = 0; i < placementList.size(); i++) {
+			if(activeList.get(i) && !(number == i)) {
+				distance = (double) Math.sqrt(Math.pow(placementList.get(number).get(0) - placementList.get(i).get(0), 2) + Math.pow(placementList.get(number).get(1) - placementList.get(i).get(1), 2));
+				if(distance <= atackRange + StagePanel.UNIT_SIZE) {
+					CorrectionStatus.fanBuff(i);
+					target = i;
+				}
+			}
+		}
+		return target;
 	}
 }
 
@@ -880,9 +914,8 @@ class UnitOperation{
 	double ratio;
 	String atack;
 	int operation;
-	double value;
 	
-	protected void operation(List<Integer> statusList,  BufferedImage image) {
+	protected int operation(List<Integer> statusList,  BufferedImage image) {
 		icon = new ImageIcon(image);
 		ratio = (double) statusList.get(1) / statusList.get(0) * 100;
 		if(0 <= statusList.get(2)) {
@@ -902,24 +935,57 @@ class UnitOperation{
 		}catch(Exception noData) {
 			operation = showOptionDialog(null, comment, "ユニット操作", OK_CANCEL_OPTION, PLAIN_MESSAGE, icon, selectMenu, selectMenu[0]);
 		}
+		return operation;
+	}
+}
+
+//能力値補正
+class CorrectionStatus{
+	List<List<Integer>> statusList = new ArrayList<>();
+	List<List<Integer>> initialStatusList = new ArrayList<>();
+	List<List<Integer>> correctionStatusList = new ArrayList<>();
+	List<Boolean> existsActiveList = new ArrayList<>();
+	double value;
+	
+	protected CorrectionStatus(List<List<Integer>> statusList, List<List<Integer>> initialStatusList, List<List<Integer>> correctionStatusList, List<Boolean> existsActiveList) {
+		this.statusList = statusList;
+		this.initialStatusList = initialStatusList;
+		this.correctionStatusList = correctionStatusList;
+		this.existsActiveList = existsActiveList;
 	}
 	
-	protected void process(int i, List<Boolean> activeList, List<Integer> statusList) {
+	protected void correction() {
+		for(int i = 0; i < statusList.size(); i++) {
+			if(existsActiveList.get(i)) {
+				for(int j = 0; j < statusList.get(i).size(); j++) {
+					if(!(j == 1)) {
+						statusList.get(i).set(j, initialStatusList.get(i).get(j) + correctionStatusList.get(i).get(j));
+					}
+				}
+			}
+		}
+	}
+	
+	protected void unitEnhancement(int number, int operation) {
 		switch(operation){
 		case 0:
-			activeList.set(i, false);
+			existsActiveList.set(number, false);
 			break;
 		case 1:
-			statusList.set(0, calculation(statusList.get(0), 1.4));
+			initialStatusList.get(number).set(0, calculation(initialStatusList.get(number).get(0), 1.4));
 			break;
 		case 2:
-			statusList.set(2, calculation(statusList.get(2), 1.2));
+			if(initialStatusList.get(number).get(2) == 0) {
+				showMessageDialog(null,"このユニットの攻撃力は上がりません");
+			}else {
+				initialStatusList.get(number).set(2, calculation(initialStatusList.get(number).get(2), 1.2));
+			}
 			break;
 		case 3:
-			statusList.set(3, calculation(statusList.get(3), 1.2));
+			initialStatusList.get(number).set(3, calculation(initialStatusList.get(number).get(3), 1.2));
 			break;
 		case 4:
-			statusList.set(4, statusList.get(4) + 30);
+			initialStatusList.get(number).set(4, initialStatusList.get(number).get(4) + 30);
 			break;
 		default:
 			break;
@@ -929,6 +995,15 @@ class UnitOperation{
 	private int calculation(int status, double magnification) {
 		value = (double) status * magnification;
 		return (int) value;
+	}
+	
+	protected void fanBuff(int number) {
+		if(0 < initialStatusList.get(number).get(2)) {
+			correctionStatusList.get(number).set(2, correctionStatusList.get(number).get(2) + 10);
+		}else if(initialStatusList.get(number).get(2) < 0) {
+			correctionStatusList.get(number).set(2, correctionStatusList.get(number).get(2) - 10);
+		}
+		correctionStatusList.get(number).set(3, correctionStatusList.get(number).get(3) + 10);
 	}
 }
 
@@ -999,11 +1074,11 @@ class SoldierInitialData{
 			"image/soldier/fan normal.png",
 			"image/soldier/fan action.png");
 	final static List<List<Integer>> SOLDIER_STATUS_LIST = Arrays.asList(
-			Arrays.asList(1000, 1000, 100, 100, 30, 1000),//sord
-			Arrays.asList(700, 700, 70, 70, 60, 700),//spear
+			Arrays.asList(1000, 1000, 100, 100, 30, 700),//sord
+			Arrays.asList(700, 700, 70, 70, 60, 1000),//spear
 			Arrays.asList(3000, 3000, 30, 300, 30, 1500),//shield
-			Arrays.asList(700, 700, 70, 70, 100, 1000),//dart
-			Arrays.asList(600, 600, 50, 50, 150, 500),//bow
+			Arrays.asList(1000, 1000, 100, 100, 100, 500),//dart
+			Arrays.asList(500, 500, 70, 70, 150, 1000),//bow
 			Arrays.asList(800, 800, 150, 70, 200, 2000),//gun
 			Arrays.asList(1000, 1000, -100, 100, 100, 1000),//hammer
 			Arrays.asList(1000, 1000, 0, 100, 100, 1000));//fan
@@ -1040,10 +1115,10 @@ class EnemyInitialData{
 			"image/enemy/yellow slime normal.png",
 			"image/enemy/yellow slime action.png");
 	final static List<List<Integer>> ENEMY_STATUS_LIST = Arrays.asList(
-			Arrays.asList(1000, 1000, 20, 20, 20, 1000, 100),//1: blue slime
-			Arrays.asList(2000, 2000, 20, 20, 20, 1000, 100),//2: green slime
-			Arrays.asList(1000, 1000, 40, 20, 20, 1000, 100),//3: red slime
-			Arrays.asList(1000, 1000, 20, 20, 20, 1000, 50));//4: yellow slime
+			Arrays.asList(1000, 1000, 20, 20, 20, 1000, 100),//0: blue slime
+			Arrays.asList(2000, 2000, 20, 20, 20, 1000, 100),//1: green slime
+			Arrays.asList(1000, 1000, 40, 20, 20, 1000, 100),//2: red slime
+			Arrays.asList(1000, 1000, 20, 20, 20, 1000, 50));//3: yellow slime
 	final static List<BufferedImage> ENEMY_IMAGE_LIST = new InputImage().Input(ENEMY_NAME_LIST);
 }
 
