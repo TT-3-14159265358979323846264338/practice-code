@@ -146,7 +146,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	long gameTime;
 	List<Boolean> existsEnemyMotionTimerList = new ArrayList<>();
 	List<Boolean> existsEnemyMoveTimerList = new ArrayList<>();
-	List<Boolean> existsSoldierMotionTimerList = new ArrayList<>();
+	static List<Boolean> existsSoldierMotionTimerList = new ArrayList<>();
 	
 	List<BufferedImage> fieldImageList;
 	List<List<Integer>> nearUnitPlacementList;
@@ -164,6 +164,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	static List<List<Integer>> enemyPlacementList = new ArrayList<>();
 	static List<EnemyMotion> EnemyMotionList = new ArrayList<>();
 	static List<EnemyMove> EnemyMoveList = new ArrayList<>();
+	static List<Integer> blockList = new ArrayList<>();
 	static int residueEnemy;
 	
 	static List<Boolean> existsActiveSoldierList = new ArrayList<>();
@@ -240,6 +241,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 			enemyPlacementList.add(new ArrayList<>(moveList.get(enemyList.get(i).get(1)).get(0)));
 			EnemyMoveList.add(new EnemyMove(i));
 			EnemyMotionList.add(new EnemyMotion(i));
+			blockList.add(-1);
 		}
 		for(int i = 0; i < facilityPlacementList.size(); i++) {
 			existsActiveSoldierList.add(true);
@@ -254,7 +256,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 			}
 			correctionSoldierStatusList.add(Arrays.asList(0, 0, 0, 0, 0, 0, 0));
 			soldierPlacementList.add(new ArrayList<>(facilityPlacementList.get(i)));
-			SoldierMotionList.add(null);
+			SoldierMotionList.add(new SoldierMotion(i, 0));
 		}
 		for(int i = 0; i < 100; i++) {
 			HitList.add(new Hit());
@@ -438,9 +440,6 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 				}
 				HPDraw(g, enemyStatusList.get(i), enemyPlacementList.get(i));
 				g.drawImage(enemyImageList.get(i), enemyPlacementList.get(i).get(0), enemyPlacementList.get(i).get(1), this);
-				if(EnemyMoveList.get(i).gameOver()) {
-					existsGameOver = true;
-				}
 			}
 		}
 	}
@@ -501,6 +500,9 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	
 	//ゲーム終了
 	private void gameEnd(Graphics g) {
+		if(soldierStatusList.get(0).get(1) <= 0) {
+			existsGameOver = true;
+		}
 		if(existsGameOver || residueEnemy <= 0) {
 	    	Graphics2D g2d = (Graphics2D) g;
 	    	Font endFont = new Font("Aria", Font.BOLD|Font.ITALIC, 150);
@@ -802,6 +804,7 @@ class EnemyMotion extends Motion implements ActionListener{
 				anotherStatusList.get(target).set(1, Calculation.damage(statusList.get(number).get(2), anotherStatusList.get(target), false));
 				if(anotherStatusList.get(target).get(1) <= 0) {
 					existsActiveAnotherList.set(target, false);
+					new DeleteBlock().delete(target);
 					StagePanel.enemyMorale += (double) StagePanel.enemyMorale / 2 - 30;
 					AnotherMotionList.get(target).timerStop();
 				}
@@ -814,21 +817,20 @@ class EnemyMotion extends Motion implements ActionListener{
 
 class EnemyMove implements ActionListener{
 	Timer timer;
+	int number;
+	List<List<Integer>> moveList;
+	List<Integer> placementList;
 	int x;
 	int y;
-	List<List<Integer>> moveList;
-	List<Integer> enemyList;
-	List<Integer> enemyStatusList;
-	List<Integer> enemyPlacementList;
 	int route = 1;
-	boolean existsGameOver;
+	int blockNumber;
+	double distance;
 	
 	protected EnemyMove(int number) {
+		this.number = number;
 		moveList = StagePanel.moveList.get(StagePanel.enemyList.get(number).get(1));
-		enemyList = StagePanel.enemyList.get(number);
-		enemyStatusList = StagePanel.enemyStatusList.get(number);
-		enemyPlacementList = StagePanel.enemyPlacementList.get(number);
-		timer = new Timer(enemyStatusList.get(6), this);
+		placementList = StagePanel.enemyPlacementList.get(number);
+		timer = new Timer(StagePanel.enemyStatusList.get(number).get(6), this);
 		timer.setInitialDelay(0);
 	}
 	
@@ -845,13 +847,52 @@ class EnemyMove implements ActionListener{
 		}
 		return false;
 	}
-	
-	protected boolean gameOver() {
-		return existsGameOver;
-	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
+		if(moveJudgment()) {
+			try {
+				placementList.set(0, placementList.get(0) + x);
+				placementList.set(1, placementList.get(1) + y);
+				if(Math.abs(moveList.get(route).get(0)	- placementList.get(0) + x) <= 5
+						&& Math.abs(moveList.get(route).get(1)	- placementList.get(1) + y) <= 5) {
+					route++;
+				}
+			}catch(Exception ignore) {
+			}
+		}
+	}
+	
+	private boolean moveJudgment() {
+		distance = 0;
+		if(0 <= StagePanel.blockList.get(number)) {
+			return false;
+		}
+		for(int i = 0; i < StagePanel.existsActiveSoldierList.size(); i++) {
+			if(StagePanel.existsActiveSoldierList.get(i) && 0 < StagePanel.soldierStatusList.get(i).get(6)) {
+				distance = (double) Math.sqrt(Math.pow(placementList.get(0) - StagePanel.soldierPlacementList.get(i).get(0), 2)
+						+ Math.pow(placementList.get(1) - StagePanel.soldierPlacementList.get(i).get(1), 2));
+				if(distance <= StagePanel.UNIT_SIZE) {
+					blockNumber = 0;
+					for(int j: StagePanel.blockList) {
+						if(j == i) {
+							blockNumber++;
+						}
+					}
+					if(blockNumber < StagePanel.soldierStatusList.get(i).get(6)) {
+						StagePanel.blockList.set(number, i);
+						x = 0;
+						y = 0;
+						return false;
+					}
+				}
+			}
+		}
+		move();
+		return true;
+	}
+	
+	private void move() {
 		try {
 			switch(moveList.get(route).get(2)){
 			case 1:
@@ -887,23 +928,19 @@ class EnemyMove implements ActionListener{
 				y = -5;
 				break;
 			default:
+				x = 0;
+				y = 0;
 				break;
 			}
-			enemyPlacementList.set(0, enemyPlacementList.get(0) + x);
-			enemyPlacementList.set(1, enemyPlacementList.get(1) + y);
-			if(Math.abs(moveList.get(route).get(0)	- enemyPlacementList.get(0) + x) <= 5
-					&& Math.abs(moveList.get(route).get(1)	- enemyPlacementList.get(1) + y) <= 5) {
-				route++;
-			}
-		}catch(Exception gameOver) {
-			existsGameOver = true;
+		}catch(Exception reachCastle) {
+			x = 0;
+			y = 0;
 		}
 	}
 }
 
 //攻撃可否
 class AttackJudgment{
-	CorrectionStatus CorrectionStatus = new CorrectionStatus();
 	double distance;
 	double minDistance;
 	double ratio;
@@ -966,7 +1003,7 @@ class AttackJudgment{
 				distance = (double) Math.sqrt(Math.pow(StagePanel.soldierPlacementList.get(number).get(0) - StagePanel.soldierPlacementList.get(i).get(0), 2)
 						+ Math.pow(StagePanel.soldierPlacementList.get(number).get(1) - StagePanel.soldierPlacementList.get(i).get(1), 2));
 				if(distance <= StagePanel.soldierStatusList.get(number).get(4) + StagePanel.UNIT_SIZE) {
-					CorrectionStatus.fanBuff(i);
+					new CorrectionStatus().fanBuff(i);
 					target = i;
 				}
 			}
@@ -1117,6 +1154,9 @@ class CorrectionStatus{
 		switch(operation){
 		case 0:
 			StagePanel.existsActiveSoldierList.set(number, false);
+			StagePanel.existsSoldierMotionTimerList.set(number, false);
+			StagePanel.SoldierMotionList.get(number).timerStop();
+			new DeleteBlock().delete(number);
 			break;
 		case 1:
 			StagePanel.initialSoldierStatusList.get(number).set(0, calculation(StagePanel.initialSoldierStatusList.get(number).get(0), 1.4));
@@ -1151,6 +1191,19 @@ class CorrectionStatus{
 			StagePanel.correctionSoldierStatusList.get(number).set(2, StagePanel.correctionSoldierStatusList.get(number).get(2) - 10);
 		}
 		StagePanel.correctionSoldierStatusList.get(number).set(3, StagePanel.correctionSoldierStatusList.get(number).get(3) + 10);
+	}
+}
+
+//足止め消去
+class DeleteBlock{
+	protected void delete(int number) {
+		if(0 < StagePanel.soldierStatusList.get(number).get(6)) {
+			for(int i = 0; i < StagePanel.blockList.size(); i++) {
+				if(StagePanel.blockList.get(i) == number) {
+					StagePanel.blockList.set(i, -1);
+				}
+			}
+		}
 	}
 }
 
@@ -1223,7 +1276,7 @@ class SoldierInitialData{
 	final static List<List<Integer>> SOLDIER_STATUS_LIST = Arrays.asList(
 			Arrays.asList(1000, 1000, 100, 100, 30, 700, 1),//sord
 			Arrays.asList(700, 700, 70, 70, 60, 1000, 1),//spear
-			Arrays.asList(3000, 3000, 30, 300, 30, 1500, 5),//shield
+			Arrays.asList(3000, 3000, 30, 300, 30, 1500, 3),//shield
 			Arrays.asList(1000, 1000, 100, 100, 100, 500, 0),//dart
 			Arrays.asList(500, 500, 70, 70, 150, 1000, 0),//bow
 			Arrays.asList(800, 800, 150, 70, 200, 2000, 0),//gun
@@ -1285,15 +1338,15 @@ class EnemyInitialData{
 
 //Stage1データ
 class Stage1InitialData {
-	List<String> fieldNameList = Arrays.asList(
+	final List<String> fieldNameList = Arrays.asList(
 			"image/field/stage1-1.png",
 			"image/field/stage1-2.png",
 			"image/field/stage1-3.png");
-	List<List<Integer>> facilityPlacementList = Arrays.asList(
+	final List<List<Integer>> facilityPlacementList = Arrays.asList(
 			Arrays.asList(875, 53),
 			Arrays.asList(555, 260),
 			Arrays.asList(790, 428));
-	List<List<Integer>> nearUnitPlacementList = Arrays.asList(
+	final List<List<Integer>> nearUnitPlacementList = Arrays.asList(
 			Arrays.asList(150, 284),
 			Arrays.asList(267, 284),
 			Arrays.asList(384, 284),
@@ -1301,7 +1354,7 @@ class Stage1InitialData {
 			Arrays.asList(682, 401),
 			Arrays.asList(917, 284),
 			Arrays.asList(917, 168));
-	List<List<Integer>> farUnitPlacementList = Arrays.asList(
+	final List<List<Integer>> farUnitPlacementList = Arrays.asList(
 			Arrays.asList(208, 225),
 			Arrays.asList(326, 225),
 			Arrays.asList(444, 225),
@@ -1313,10 +1366,10 @@ class Stage1InitialData {
 			Arrays.asList(682, 166),
 			Arrays.asList(799, 166),
 			Arrays.asList(799, 284));
-	List<List<Integer>> allUnitPlacementList = Arrays.asList(
+	final List<List<Integer>> allUnitPlacementList = Arrays.asList(
 			Arrays.asList(682, 284),
 			Arrays.asList(917, 401));
-	List<List<List<Integer>>> moveList = Arrays.asList(
+	final List<List<List<Integer>>> moveList = Arrays.asList(
 			Arrays.asList(Arrays.asList(0, 269, 0),//経路: 0
 					Arrays.asList(667, 269, 3),
 					Arrays.asList(667, 386, 5),
@@ -1327,12 +1380,12 @@ class Stage1InitialData {
 					Arrays.asList(667, 386, 5),
 					Arrays.asList(902, 386, 3),
 					Arrays.asList(902, 110, 1)));
-	List<List<Integer>> enemyList = Arrays.asList(
+	final List<List<Integer>> enemyList = Arrays.asList(
 			Arrays.asList(0, 0, 100),
 			Arrays.asList(3, 1, 100),
 			Arrays.asList(1, 0, 200),
 			Arrays.asList(2, 0, 300));
-	List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList);
+	final List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList);
 	
 	protected Stage1InitialData() {
 		new StageFrame(fieldImageList, facilityPlacementList, nearUnitPlacementList, farUnitPlacementList, allUnitPlacementList, moveList, enemyList);
