@@ -553,7 +553,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 				correctionSoldierStatusList.get(i).set(j, 0);
 			}
 		}
-		for(int i = 0; i < soldierImageList.size(); i++) {
+		for(int i = 0; i < existsActiveSoldierList.size(); i++) {
 			if(existsActiveSoldierList.get(i) && 0 < soldierStatusList.get(i).get(4)) {
 				if(0 < soldierStatusList.get(i).get(2)) {
 					target = AttackJudgment.judgmentNear(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, existsActiveEnemyList);
@@ -602,6 +602,9 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		for(int i = 0; i < EnemyMotionList.size(); i ++) {
 			existsEnemyMotionTimerList.add(EnemyMotionList.get(i).timerStop());
 			existsEnemyMoveTimerList.add(EnemyMoveList.get(i).timerStop());
+		}
+		for(Hit i: HitList) {
+			i.timerStop();
 		}
 		timer.stop();
 		removeMouseListener(this);
@@ -712,23 +715,32 @@ class SoldierMotion extends Motion implements ActionListener{
 			imageList.set(number, defaultNormalImage);
 		}else {
 			imageList.set(number, defaultActionImage);
+			StagePanel.hitNumber++;
 			if(0 < statusList.get(number).get(2)) {
-				anotherStatusList.get(target).set(1, Calculation.damage(statusList.get(number).get(2), anotherStatusList.get(target), true));
-				StagePanel.hitNumber++;
-				StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(target, false);
-				if(anotherStatusList.get(target).get(1) <= 0) {
-					existsActiveAnotherList.set(target, false);
-					new DeleteBlock().deleteOne(target);
-					StagePanel.residueEnemy -= 1;
-					StagePanel.soldierMorale += (double) 100 / anotherStatusList.size();
-					AnotherMotionList.get(target).timerStop();
-					EnemyMoveList.get(target).timerStop();
-				}
+				atack();
 			}else {
-				statusList.get(target).set(1, Calculation.heal(statusList.get(number).get(2), statusList.get(target), true));
+				heal();
 			}
 		}
 		actionTime = System.currentTimeMillis();
+	}
+	
+	private void atack() {
+		anotherStatusList.get(target).set(1, Calculation.damage(statusList.get(number).get(2), anotherStatusList.get(target), true));
+		StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(target, false, true);
+		if(anotherStatusList.get(target).get(1) <= 0) {
+			existsActiveAnotherList.set(target, false);
+			new DeleteBlock().deleteOne(target);
+			StagePanel.residueEnemy -= 1;
+			StagePanel.soldierMorale += (double) 100 / anotherStatusList.size();
+			AnotherMotionList.get(target).timerStop();
+			EnemyMoveList.get(target).timerStop();
+		}
+	}
+	
+	private void heal() {
+		statusList.get(target).set(1, Calculation.heal(statusList.get(number).get(2), statusList.get(target), true));
+		StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(target, false, false);
 	}
 }
 
@@ -792,20 +804,29 @@ class EnemyMotion extends Motion implements ActionListener{
 			imageList.set(number, defaultActionImage);
 			EnemyMoveList.get(number).timerStop();
 			StagePanel.hitNumber++;
-			StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(target, true);
 			if(0 < statusList.get(number).get(2)) {
-				anotherStatusList.get(target).set(1, Calculation.damage(statusList.get(number).get(2), anotherStatusList.get(target), false));
-				if(anotherStatusList.get(target).get(1) <= 0) {
-					existsActiveAnotherList.set(target, false);
-					new DeleteBlock().deleteAll(target);
-					StagePanel.enemyMorale += (double) StagePanel.enemyMorale / 2 - 30;
-					AnotherMotionList.get(target).timerStop();
-				}
+				atack();
 			}else {
-				statusList.get(target).set(1, Calculation.heal(statusList.get(number).get(2), statusList.get(target), false));
+				heal();
 			}
 		}
 		actionTime = System.currentTimeMillis();
+	}
+	
+	private void atack() {
+		anotherStatusList.get(target).set(1, Calculation.damage(statusList.get(number).get(2), anotherStatusList.get(target), false));
+		StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(target, true, true);
+		if(anotherStatusList.get(target).get(1) <= 0) {
+			existsActiveAnotherList.set(target, false);
+			new DeleteBlock().deleteAll(target);
+			StagePanel.enemyMorale += (double) StagePanel.enemyMorale / 2 - 30;
+			AnotherMotionList.get(target).timerStop();
+		}
+	}
+	
+	private void heal() {
+		statusList.get(target).set(1, Calculation.heal(statusList.get(number).get(2), statusList.get(target), false));
+		StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(target, true, false);
 	}
 }
 
@@ -846,6 +867,7 @@ class EnemyMove implements ActionListener{
 	public void actionPerformed(ActionEvent e) {
 		if(moveJudgment()) {
 			try {
+				moveDistance();
 				placementList.set(0, placementList.get(0) + x);
 				placementList.set(1, placementList.get(1) + y);
 				if(Math.abs(moveList.get(route).get(0)	- placementList.get(0) + x) <= 5
@@ -882,11 +904,10 @@ class EnemyMove implements ActionListener{
 				}
 			}
 		}
-		move();
 		return true;
 	}
 	
-	private void move() {
+	private void moveDistance() {
 		try {
 			switch(moveList.get(route).get(2)){
 			case 1:
@@ -1036,23 +1057,32 @@ class Hit implements ActionListener{
 	Timer timer;
 	int target;
 	boolean existsWhich;
+	boolean existsAtack;
 	boolean canDraw;
 	List<Integer> placementList;
 	Random random = new Random();
 	int hitPointX;
 	int hitPointY;
+	BufferedImage image;
 	
 	protected Hit() {
 		timer = new Timer(200, this);
 		timer.setInitialDelay(0);
 	}
 	
-	protected void timerStart(int target, boolean existsWhich) {
+	protected void timerStart(int target, boolean existsWhich, boolean existsAtack) {
 		this.target = target;
 		this.existsWhich = existsWhich;
+		this.existsAtack = existsAtack;
 		canDraw = false;
 		timer.setRepeats(true);
 		timer.start();
+	}
+	
+	protected void timerStop() {
+		if(timer.isRunning()) {
+			timer.stop();
+		}
 	}
 	
 	protected void hitDraw(Graphics g) {
@@ -1064,10 +1094,11 @@ class Hit implements ActionListener{
 	}
 	
 	private void draw(Graphics g) {
-		placementList = (existsWhich)? StagePanel.soldierPlacementList.get(target): StagePanel.enemyPlacementList.get(target);
+		placementList = (existsWhich == existsAtack)? StagePanel.soldierPlacementList.get(target): StagePanel.enemyPlacementList.get(target);
 		hitPointX = random.nextInt(StagePanel.UNIT_SIZE) + placementList.get(0);
 		hitPointY = random.nextInt(StagePanel.UNIT_SIZE) + placementList.get(1);
-		g.drawImage(AtackData.HIT_IMAGE.get(0), hitPointX, hitPointY, null);
+		image = (existsAtack)? AtackData.HIT_IMAGE.get(0):AtackData.HEAL_IMAGE.get(0);
+		g.drawImage(image, hitPointX, hitPointY, null);
 	}
 	
 	@Override
@@ -1311,6 +1342,8 @@ class PlacementData{
 class AtackData{
 	final static List<String> HIT_NAME = Arrays.asList("image/soldier/hit.png");
 	final static List<BufferedImage> HIT_IMAGE = new InputImage().input(HIT_NAME);
+	final static List<String> HEAL_NAME = Arrays.asList("image/soldier/heal.png");
+	final static List<BufferedImage> HEAL_IMAGE = new InputImage().input(HEAL_NAME);
 }
 
 //敵軍データ
