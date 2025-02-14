@@ -74,7 +74,8 @@ class MainPanel extends JPanel{
     //ステージ選択
     private void buttonAction() {
     	stageSelectButton1.addActionListener(e->{
-    		new Stage1InitialData();
+    		new Stage1Data().importData();
+    		new StageFrame();
     	});
     	stageSelectButton2.addActionListener(e->{
     		showMessageDialog(null,"現在調整中");
@@ -116,19 +117,13 @@ class MainPanel extends JPanel{
 
 //ゲーム画面表示
 class StageFrame {
-	protected StageFrame(List<BufferedImage> fieldImageList, 
-			List<List<Integer>> facilityPlacementList, 
-			List<List<Integer>> nearUnitPlacementList, 
-			List<List<Integer>> farUnitPlacementList, 
-			List<List<Integer>> allUnitPlacementList, 
-			List<List<List<Integer>>> moveList,	
-			List<List<Integer>> enemyList) {
+	protected StageFrame(){
 		JFrame gameFrame = new JFrame("Stage1");
 		gameFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		gameFrame.setSize(1235, 600);
 		gameFrame.setResizable(false);
 		gameFrame.setLocationRelativeTo(null);
-		gameFrame.add(new StagePanel(fieldImageList, facilityPlacementList, nearUnitPlacementList, farUnitPlacementList, allUnitPlacementList, moveList, enemyList));
+		gameFrame.add(new StagePanel());
 		gameFrame.setVisible(true);
 	}
 }
@@ -148,16 +143,10 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	List<Boolean> existsEnemyMoveTimerList = new ArrayList<>();
 	static List<Boolean> existsSoldierMotionTimerList = new ArrayList<>();
 	
-	List<BufferedImage> fieldImageList;
-	List<List<Integer>> nearUnitPlacementList;
-	List<List<Integer>> farUnitPlacementList;
-	List<List<Integer>> allUnitPlacementList;
 	List<List<Integer>> mixNearUnitPlacementList = new ArrayList<>();
 	List<List<Integer>> mixFarUnitPlacementList = new ArrayList<>();
 	List<List<Integer>> mixAllUnitPlacementList = new ArrayList<>();
 	
-	static List<List<List<Integer>>> moveList;
-	static List<List<Integer>> enemyList;
 	static List<Boolean> existsActiveEnemyList = new ArrayList<>();
 	static List<BufferedImage> enemyImageList = new ArrayList<>();
 	static List<List<Integer>> enemyStatusList = new ArrayList<>();
@@ -195,13 +184,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	boolean existsGameOver;
 	
 	//初期設定取り込み
-    protected StagePanel(List<BufferedImage> fieldImageList, 
-    		List<List<Integer>> facilityPlacementList, 
-    		List<List<Integer>> nearUnitPlacementList, 
-    		List<List<Integer>> farUnitPlacementList, 
-    		List<List<Integer>> allUnitPlacementList, 
-    		List<List<List<Integer>>> moveList,	
-    		List<List<Integer>> enemyList) {
+    protected StagePanel() {
     	timer = new Timer(10, this);
 		timer.start();
     	addMouseListener(this);
@@ -221,41 +204,35 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
     		restart();
     	});
     	add(residueEnemyLabel);
-		this.fieldImageList = new ArrayList<>(fieldImageList);
-		this.nearUnitPlacementList = new ArrayList<>(nearUnitPlacementList);
-		this.farUnitPlacementList = new ArrayList<>(farUnitPlacementList);
-		this.allUnitPlacementList = new ArrayList<>(allUnitPlacementList);
-		StagePanel.moveList = new ArrayList<>(moveList);
-		StagePanel.enemyList = new ArrayList<>(enemyList);
-		mixNearUnitPlacementList = Stream.concat(nearUnitPlacementList.stream(), allUnitPlacementList.stream())
+		mixNearUnitPlacementList = Stream.concat(StageData.nearUnitPlacementList.stream(), StageData.allUnitPlacementList.stream())
 				.collect(Collectors.toList());
-		mixFarUnitPlacementList = Stream.concat(farUnitPlacementList.stream(), allUnitPlacementList.stream())
+		mixFarUnitPlacementList = Stream.concat(StageData.farUnitPlacementList.stream(), StageData.allUnitPlacementList.stream())
 				.collect(Collectors.toList());
-		mixAllUnitPlacementList = Stream.concat(mixNearUnitPlacementList.stream(), farUnitPlacementList.stream())
+		mixAllUnitPlacementList = Stream.concat(mixNearUnitPlacementList.stream(), StageData.farUnitPlacementList.stream())
 				.collect(Collectors.toList());
-		residueEnemy = enemyList.size();
-		for(int i = 0; i < enemyList.size(); i ++) {
+		residueEnemy = StageData.enemyList.size();
+		for(int i = 0; i < StageData.enemyList.size(); i ++) {
 			existsActiveEnemyList.add(false);
-			enemyImageList.add(EnemyInitialData.ENEMY_IMAGE_LIST.get(enemyList.get(i).get(0) * 2));
-			enemyStatusList.add(new ArrayList<>(EnemyInitialData.ENEMY_STATUS_LIST.get(enemyList.get(i).get(0))));
-			enemyPlacementList.add(new ArrayList<>(moveList.get(enemyList.get(i).get(1)).get(0)));
+			enemyImageList.add(EnemyData.ENEMY_IMAGE_LIST.get(StageData.enemyList.get(i).get(0) * 2));
+			enemyStatusList.add(new ArrayList<>(EnemyData.ENEMY_STATUS_LIST.get(StageData.enemyList.get(i).get(0))));
+			enemyPlacementList.add(new ArrayList<>(StageData.moveList.get(StageData.enemyList.get(i).get(1)).get(0)));
 			EnemyMoveList.add(new EnemyMove(i));
 			EnemyMotionList.add(new EnemyMotion(i));
 			blockList.add(-1);
 		}
-		for(int i = 0; i < facilityPlacementList.size(); i++) {
+		for(int i = 0; i < StageData.facilityPlacementList.size(); i++) {
 			existsActiveSoldierList.add(true);
 			if(i == 0) {
-				soldierImageList.add(SoldierInitialData.CASTLE_IMAGE.get(0));
-				soldierStatusList.add(new ArrayList<>(SoldierInitialData.CASTLE_STATUS));
-				initialSoldierStatusList.add(new ArrayList<>(SoldierInitialData.CASTLE_STATUS));
+				soldierImageList.add(SoldierData.CASTLE_IMAGE.get(0));
+				soldierStatusList.add(new ArrayList<>(SoldierData.CASTLE_STATUS));
+				initialSoldierStatusList.add(new ArrayList<>(SoldierData.CASTLE_STATUS));
 			}else {
-				soldierImageList.add(SoldierInitialData.GATE_IMAGE.get(0));
-				soldierStatusList.add(new ArrayList<>(SoldierInitialData.GATE_STATUS));
-				initialSoldierStatusList.add(new ArrayList<>(SoldierInitialData.GATE_STATUS));
+				soldierImageList.add(SoldierData.GATE_IMAGE.get(0));
+				soldierStatusList.add(new ArrayList<>(SoldierData.GATE_STATUS));
+				initialSoldierStatusList.add(new ArrayList<>(SoldierData.GATE_STATUS));
 			}
 			correctionSoldierStatusList.add(Arrays.asList(0, 0, 0, 0, 0, 0, 0));
-			soldierPlacementList.add(new ArrayList<>(facilityPlacementList.get(i)));
+			soldierPlacementList.add(new ArrayList<>(StageData.facilityPlacementList.get(i)));
 			SoldierMotionList.add(new SoldierMotion(i, 0));
 		}
 		for(int i = 0; i < 100; i++) {
@@ -287,9 +264,9 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	public void mousePressed(MouseEvent e) {
 		mouseX = e.getX();
 		mouseY = e.getY();
-		for(int i = 0; i < SoldierInitialData.UNIT_PLACEMENT_LIST.size(); i++) {
-			if(SoldierInitialData.UNIT_PLACEMENT_LIST.get(i).get(0).isValidIntValue(mouseX)
-					&& SoldierInitialData.UNIT_PLACEMENT_LIST.get(i).get(1).isValidIntValue(mouseY)){
+		for(int i = 0; i < SoldierData.UNIT_PLACEMENT_LIST.size(); i++) {
+			if(SoldierData.UNIT_PLACEMENT_LIST.get(i).get(0).isValidIntValue(mouseX)
+					&& SoldierData.UNIT_PLACEMENT_LIST.get(i).get(1).isValidIntValue(mouseY)){
 				unitNumber = i;
 				canSelect = true;
 	    		break;
@@ -413,25 +390,25 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		pauseButton.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 15));
 		pauseButton.setBounds(1110,475,100,40);
 		pauseButton.setFocusable(false);
-		g.drawImage(fieldImageList.get(0), 0, 0, this);
-		for(int i = 0; i < SoldierInitialData.SOLDIER_IMAGE_LIST.size(); i += 2) {
-			g.drawImage(SoldierInitialData.SOLDIER_IMAGE_LIST.get(i), 1015 + i % 4 * 50, 55 + i / 4 * 100, this);
+		g.drawImage(StageData.fieldImageList.get(0), 0, 0, this);
+		for(int i = 0; i < SoldierData.SOLDIER_IMAGE_LIST.size(); i += 2) {
+			g.drawImage(SoldierData.SOLDIER_IMAGE_LIST.get(i), 1015 + i % 4 * 50, 55 + i / 4 * 100, this);
 		}
-		for(List<Integer> i : nearUnitPlacementList) {
-			g.drawImage(PlacementInitialData.PLACEMENT_IMAGE_LIST.get(0), i.get(0), i.get(1), this);
+		for(List<Integer> i : StageData.nearUnitPlacementList) {
+			g.drawImage(PlacementData.PLACEMENT_IMAGE_LIST.get(0), i.get(0), i.get(1), this);
 		}
-		for(List<Integer> i : farUnitPlacementList) {
-			g.drawImage(PlacementInitialData.PLACEMENT_IMAGE_LIST.get(1), i.get(0), i.get(1), this);
+		for(List<Integer> i : StageData.farUnitPlacementList) {
+			g.drawImage(PlacementData.PLACEMENT_IMAGE_LIST.get(1), i.get(0), i.get(1), this);
 		}
-		for(List<Integer> i : allUnitPlacementList) {
-			g.drawImage(PlacementInitialData.PLACEMENT_IMAGE_LIST.get(2), i.get(0), i.get(1), this);
+		for(List<Integer> i : StageData.allUnitPlacementList) {
+			g.drawImage(PlacementData.PLACEMENT_IMAGE_LIST.get(2), i.get(0), i.get(1), this);
 		}
 	}
 	
 	//敵移動
 	private void enemyDraw(Graphics g) {
-		for(int i = 0; i < enemyList.size(); i++) {
-			if(enemyList.get(i).get(2) == gameTime) {
+		for(int i = 0; i < StageData.enemyList.size(); i++) {
+			if(StageData.enemyList.get(i).get(2) == gameTime) {
 				existsActiveEnemyList.set(i, true);
 				EnemyMoveList.get(i).moveStart();
 			}else if(existsActiveEnemyList.get(i)) {
@@ -469,7 +446,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	//ユニット移動
 	private void placementDraw(Graphics g) {
 		if(canSelect) {
-			g.drawImage(SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2), mouseX - 50, mouseY - 50, this);
+			g.drawImage(SoldierData.SOLDIER_IMAGE_LIST.get(unitNumber * 2), mouseX - 50, mouseY - 50, this);
 		}
 	}
 	
@@ -558,9 +535,9 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 				}
 			}
 			existsActiveSoldierList.add(true);
-			soldierImageList.add(SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2));
-			soldierStatusList.add(new ArrayList<>(SoldierInitialData.SOLDIER_STATUS_LIST.get(unitNumber)));
-			initialSoldierStatusList.add(new ArrayList<>(SoldierInitialData.SOLDIER_STATUS_LIST.get(unitNumber)));
+			soldierImageList.add(SoldierData.SOLDIER_IMAGE_LIST.get(unitNumber * 2));
+			soldierStatusList.add(new ArrayList<>(SoldierData.SOLDIER_STATUS_LIST.get(unitNumber)));
+			initialSoldierStatusList.add(new ArrayList<>(SoldierData.SOLDIER_STATUS_LIST.get(unitNumber)));
 			correctionSoldierStatusList.add(Arrays.asList(0, 0, 0, 0, 0, 0, 0));
 			soldierPlacementList.add(Arrays.asList(placementList.get(0) - CORRECTION_POSITION, placementList.get(1) - CORRECTION_POSITION));
 			SoldierMotionList.add(new SoldierMotion(soldierStatusList.size() - 1, unitNumber));
@@ -592,7 +569,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 				}
 			}
 		}
-		for(int i = 0; i < enemyList.size(); i++) {
+		for(int i = 0; i < existsActiveEnemyList.size(); i++) {
 			if(existsActiveEnemyList.get(i)) {
 				if(0 < enemyStatusList.get(i).get(2)) {
 					target = AttackJudgment.judgmentNear(enemyStatusList.get(i).get(4), enemyPlacementList.get(i), soldierPlacementList, existsActiveSoldierList);
@@ -685,8 +662,8 @@ class SoldierMotion extends Motion implements ActionListener{
 	protected SoldierMotion(int number, int unitNumber) {
 		super.motion(number);
 		imageList = StagePanel.soldierImageList;
-		defaultNormalImage = SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2);
-		defaultActionImage = SoldierInitialData.SOLDIER_IMAGE_LIST.get(unitNumber * 2 + 1);
+		defaultNormalImage = SoldierData.SOLDIER_IMAGE_LIST.get(unitNumber * 2);
+		defaultActionImage = SoldierData.SOLDIER_IMAGE_LIST.get(unitNumber * 2 + 1);
 		statusList = StagePanel.soldierStatusList;
 		anotherStatusList = StagePanel.enemyStatusList;
 		existsActiveAnotherList = StagePanel.existsActiveEnemyList;
@@ -741,6 +718,7 @@ class SoldierMotion extends Motion implements ActionListener{
 				StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(target, false);
 				if(anotherStatusList.get(target).get(1) <= 0) {
 					existsActiveAnotherList.set(target, false);
+					new DeleteBlock().deleteOne(target);
 					StagePanel.residueEnemy -= 1;
 					StagePanel.soldierMorale += (double) 100 / anotherStatusList.size();
 					AnotherMotionList.get(target).timerStop();
@@ -761,8 +739,8 @@ class EnemyMotion extends Motion implements ActionListener{
 	protected EnemyMotion(int number) {
 		super.motion(number);
 		imageList = StagePanel.enemyImageList;
-		defaultNormalImage = EnemyInitialData.ENEMY_IMAGE_LIST.get(StagePanel.enemyList.get(number).get(0) * 2);
-		defaultActionImage = EnemyInitialData.ENEMY_IMAGE_LIST.get(StagePanel.enemyList.get(number).get(0) * 2 + 1);
+		defaultNormalImage = EnemyData.ENEMY_IMAGE_LIST.get(StageData.enemyList.get(number).get(0) * 2);
+		defaultActionImage = EnemyData.ENEMY_IMAGE_LIST.get(StageData.enemyList.get(number).get(0) * 2 + 1);
 		statusList = StagePanel.enemyStatusList;
 		anotherStatusList = StagePanel.soldierStatusList;
 		existsActiveAnotherList = StagePanel.existsActiveSoldierList;
@@ -819,7 +797,7 @@ class EnemyMotion extends Motion implements ActionListener{
 				anotherStatusList.get(target).set(1, Calculation.damage(statusList.get(number).get(2), anotherStatusList.get(target), false));
 				if(anotherStatusList.get(target).get(1) <= 0) {
 					existsActiveAnotherList.set(target, false);
-					new DeleteBlock().delete(target);
+					new DeleteBlock().deleteAll(target);
 					StagePanel.enemyMorale += (double) StagePanel.enemyMorale / 2 - 30;
 					AnotherMotionList.get(target).timerStop();
 				}
@@ -844,7 +822,7 @@ class EnemyMove implements ActionListener{
 	
 	protected EnemyMove(int number) {
 		this.number = number;
-		moveList = StagePanel.moveList.get(StagePanel.enemyList.get(number).get(1));
+		moveList = StageData.moveList.get(StageData.enemyList.get(number).get(1));
 		placementList = StagePanel.enemyPlacementList.get(number);
 		timer = new Timer(StagePanel.enemyStatusList.get(number).get(6), this);
 		timer.setInitialDelay(0);
@@ -1172,7 +1150,7 @@ class CorrectionStatus{
 			StagePanel.existsActiveSoldierList.set(number, false);
 			StagePanel.existsSoldierMotionTimerList.set(number, false);
 			StagePanel.SoldierMotionList.get(number).timerStop();
-			new DeleteBlock().delete(number);
+			new DeleteBlock().deleteAll(number);
 			break;
 		case 1:
 			StagePanel.initialSoldierStatusList.get(number).set(0, calculation(StagePanel.initialSoldierStatusList.get(number).get(0), 1.4));
@@ -1212,7 +1190,7 @@ class CorrectionStatus{
 
 //足止め消去
 class DeleteBlock{
-	protected void delete(int number) {
+	protected void deleteAll(int number) {
 		if(0 < StagePanel.soldierStatusList.get(number).get(6)) {
 			for(int i = 0; i < StagePanel.blockList.size(); i++) {
 				if(StagePanel.blockList.get(i) == number) {
@@ -1221,11 +1199,15 @@ class DeleteBlock{
 			}
 		}
 	}
+	
+	protected void deleteOne(int number) {
+		StagePanel.blockList.set(number, -1);
+	}
 }
 
 
 
-//♦基本データ♦
+//♦共通基本データ♦
 
 //画像取り込み
 class InputImage{
@@ -1271,7 +1253,7 @@ class InputImage{
 }
 
 //自軍データ
-class SoldierInitialData{
+class SoldierData{
 	final static List<String> SOLDIER_NAME_LIST = Arrays.asList(
 			"image/soldier/sord normal.png",
 			"image/soldier/sord action.png",
@@ -1289,6 +1271,7 @@ class SoldierInitialData{
 			"image/soldier/hammer action.png",
 			"image/soldier/fan normal.png",
 			"image/soldier/fan action.png");
+	final static List<BufferedImage> SOLDIER_IMAGE_LIST = new InputImage().input(SOLDIER_NAME_LIST);
 	final static List<List<Integer>> SOLDIER_STATUS_LIST = Arrays.asList(
 			Arrays.asList(1000, 1000, 100, 100, 30, 700, 1),//sord
 			Arrays.asList(700, 700, 70, 70, 60, 1000, 1),//spear
@@ -1308,16 +1291,15 @@ class SoldierInitialData{
 			Arrays.asList(ValueRange.of(1035, 1085), ValueRange.of(375, 425)),//hammer
 			Arrays.asList(ValueRange.of(1135, 1190), ValueRange.of(380, 420)));//fan
 	final static List<String> CASTLE_NAME = Arrays.asList("image/soldier/castle.png");
+	final static List<BufferedImage> CASTLE_IMAGE = new InputImage().input(CASTLE_NAME);
 	final static List<Integer> CASTLE_STATUS = Arrays.asList(10000, 10000, 0, 20, 0, 0, 100000);
 	final static List<String> GATE_NAME = Arrays.asList("image/soldier/castle gate.png");
-	final static List<Integer> GATE_STATUS = Arrays.asList(10000, 10000, 0, 10, 0, 0, 100000);
-	final static List<BufferedImage> SOLDIER_IMAGE_LIST = new InputImage().input(SOLDIER_NAME_LIST);
-	final static List<BufferedImage> CASTLE_IMAGE = new InputImage().input(CASTLE_NAME);
 	final static List<BufferedImage> GATE_IMAGE = new InputImage().input(GATE_NAME);
+	final static List<Integer> GATE_STATUS = Arrays.asList(10000, 10000, 0, 10, 0, 0, 100000);
 }
 
 //配置位置データ
-class PlacementInitialData{
+class PlacementData{
 	final static List<String> PLACEMENT_NAME_LIST = Arrays.asList(
 			"image/soldier/near placement.png",
 			"image/soldier/far placement.png",
@@ -1332,7 +1314,7 @@ class AtackData{
 }
 
 //敵軍データ
-class EnemyInitialData{
+class EnemyData{
 	final static List<String> ENEMY_NAME_LIST = Arrays.asList(
 			"image/enemy/blue slime normal.png",
 			"image/enemy/blue slime action.png",
@@ -1342,27 +1324,62 @@ class EnemyInitialData{
 			"image/enemy/red slime action.png",
 			"image/enemy/yellow slime normal.png",
 			"image/enemy/yellow slime action.png");
+	final static List<BufferedImage> ENEMY_IMAGE_LIST = new InputImage().input(ENEMY_NAME_LIST);
 	final static List<List<Integer>> ENEMY_STATUS_LIST = Arrays.asList(
 			Arrays.asList(1000, 1000, 20, 20, 20, 1000, 100),//0: blue slime
 			Arrays.asList(2000, 2000, 20, 20, 20, 1000, 100),//1: green slime
 			Arrays.asList(1000, 1000, 40, 20, 20, 1000, 100),//2: red slime
 			Arrays.asList(1000, 1000, 20, 20, 20, 1000, 50));//3: yellow slime
-	final static List<BufferedImage> ENEMY_IMAGE_LIST = new InputImage().input(ENEMY_NAME_LIST);
+}
+
+//選択ステージデータ
+class StageData{
+	static List<BufferedImage> fieldImageList;
+	static List<List<Integer>> facilityPlacementList;
+	static List<List<Integer>> nearUnitPlacementList;
+	static List<List<Integer>> farUnitPlacementList;
+	static List<List<Integer>> allUnitPlacementList;
+	static List<List<List<Integer>>> moveList;
+	static List<List<Integer>> enemyList;
 }
 
 
 
+//♦各ステージ基本データ♦
+
+//ステージデータ入力用 新ステージ実装時にextendsしてね
+abstract class Stage{
+	abstract protected List<BufferedImage> fieldImageList();
+	abstract protected List<List<Integer>> facilityPlacementList();
+	abstract protected List<List<Integer>> nearUnitPlacementList();
+	abstract protected List<List<Integer>> farUnitPlacementList();
+	abstract protected List<List<Integer>> allUnitPlacementList();
+	abstract protected List<List<List<Integer>>> moveList();
+	abstract protected List<List<Integer>> enemyList();
+	
+	protected void importData() {
+		StageData.fieldImageList = fieldImageList();
+		StageData.facilityPlacementList = facilityPlacementList();
+		StageData.nearUnitPlacementList = nearUnitPlacementList();
+		StageData.farUnitPlacementList = farUnitPlacementList();
+		StageData.allUnitPlacementList = allUnitPlacementList();
+		StageData.moveList = moveList();
+		StageData.enemyList = enemyList();
+	}
+}
+
 //Stage1データ
-class Stage1InitialData {
-	final List<String> fieldNameList = Arrays.asList(
+class Stage1Data extends Stage{
+	List<String> fieldNameList = Arrays.asList(
 			"image/field/stage1-1.png",
 			"image/field/stage1-2.png",
 			"image/field/stage1-3.png");
-	final List<List<Integer>> facilityPlacementList = Arrays.asList(
+	List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList);
+	List<List<Integer>> facilityPlacementList = Arrays.asList(
 			Arrays.asList(875, 53),
 			Arrays.asList(555, 260),
 			Arrays.asList(790, 428));
-	final List<List<Integer>> nearUnitPlacementList = Arrays.asList(
+	List<List<Integer>> nearUnitPlacementList = Arrays.asList(
 			Arrays.asList(150, 284),
 			Arrays.asList(267, 284),
 			Arrays.asList(384, 284),
@@ -1370,7 +1387,7 @@ class Stage1InitialData {
 			Arrays.asList(682, 401),
 			Arrays.asList(917, 284),
 			Arrays.asList(917, 168));
-	final List<List<Integer>> farUnitPlacementList = Arrays.asList(
+	List<List<Integer>> farUnitPlacementList = Arrays.asList(
 			Arrays.asList(208, 225),
 			Arrays.asList(326, 225),
 			Arrays.asList(444, 225),
@@ -1382,10 +1399,10 @@ class Stage1InitialData {
 			Arrays.asList(682, 166),
 			Arrays.asList(799, 166),
 			Arrays.asList(799, 284));
-	final List<List<Integer>> allUnitPlacementList = Arrays.asList(
+	List<List<Integer>> allUnitPlacementList = Arrays.asList(
 			Arrays.asList(682, 284),
 			Arrays.asList(917, 401));
-	final List<List<List<Integer>>> moveList = Arrays.asList(
+	List<List<List<Integer>>> moveList = Arrays.asList(
 			Arrays.asList(Arrays.asList(0, 269, 0),//経路: 0
 					Arrays.asList(667, 269, 3),
 					Arrays.asList(667, 386, 5),
@@ -1396,15 +1413,39 @@ class Stage1InitialData {
 					Arrays.asList(667, 386, 5),
 					Arrays.asList(902, 386, 3),
 					Arrays.asList(902, 110, 1)));
-	final List<List<Integer>> enemyList = Arrays.asList(
+	List<List<Integer>> enemyList = Arrays.asList(
 			Arrays.asList(0, 0, 100),
 			Arrays.asList(3, 1, 100),
 			Arrays.asList(1, 0, 200),
 			Arrays.asList(2, 0, 300));
-	final List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList);
 	
-	protected Stage1InitialData() {
-		new StageFrame(fieldImageList, facilityPlacementList, nearUnitPlacementList, farUnitPlacementList, allUnitPlacementList, moveList, enemyList);
+	@Override
+	protected List<BufferedImage> fieldImageList() {
+		return fieldImageList;
+	}
+	@Override
+	protected List<List<Integer>> facilityPlacementList() {
+		return facilityPlacementList;
+	}
+	@Override
+	protected List<List<Integer>> nearUnitPlacementList() {
+		return nearUnitPlacementList;
+	}
+	@Override
+	protected List<List<Integer>> farUnitPlacementList() {
+		return farUnitPlacementList;
+	}
+	@Override
+	protected List<List<Integer>> allUnitPlacementList() {
+		return allUnitPlacementList;
+	}
+	@Override
+	protected List<List<List<Integer>>> moveList() {
+		return moveList;
+	}
+	@Override
+	protected List<List<Integer>> enemyList() {
+		return enemyList;
 	}
 }
 
