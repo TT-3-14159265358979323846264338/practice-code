@@ -132,6 +132,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	AttackJudgment AttackJudgment = new AttackJudgment();
 	UnitOperation UnitOperation = new UnitOperation();
 	CorrectionStatus CorrectionStatus = new CorrectionStatus();
+	JLabel categoryLabel[] = new JLabel[8];
 	JLabel actionCommentLabel = new JLabel();
 	JLabel residueEnemyLabel = new JLabel();
 	JButton rangeDrawButton = new JButton();
@@ -190,6 +191,11 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
     	addMouseListener(this);
     	addMouseMotionListener(this);
     	setBackground(new Color(240, 170, 80));
+    	for(int i = 0; i < categoryLabel.length; i++) {
+    		categoryLabel[i] = new JLabel();
+    		add(categoryLabel[i]);
+    	}
+    	add(residueEnemyLabel);
     	add(actionCommentLabel);
     	add(rangeDrawButton);
     	rangeDrawButton.addActionListener(e->{
@@ -203,7 +209,6 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
     		canPause = false;
     		restart();
     	});
-    	add(residueEnemyLabel);
 		mixNearUnitPlacementList = Stream.concat(StageData.nearUnitPlacementList.stream(), StageData.allUnitPlacementList.stream())
 				.collect(Collectors.toList());
 		mixFarUnitPlacementList = Stream.concat(StageData.farUnitPlacementList.stream(), StageData.allUnitPlacementList.stream())
@@ -379,18 +384,42 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		g.drawLine(1010, 250, 1210, 250);
 		g.drawLine(1010, 350, 1210, 350);
 		g.drawLine(1010, 450, 1210, 450);
+		for(int i = 0; i < categoryLabel.length; i++) {
+			if(i < 3) {
+				categoryLabel[i].setText("近攻");
+			}else if(i < 6) {
+				categoryLabel[i].setText("遠攻");
+			}else if(i == 6){
+				categoryLabel[i].setText("回復");
+			}else {
+				categoryLabel[i].setText("支援");
+			}
+			categoryLabel[i].setFont(new Font("ＭＳ ゴシック", Font.BOLD, 18));
+			categoryLabel[i].setBounds(1065 + i % 2 * 100, 115 + i / 2 * 100, 100, 40);
+			categoryLabel[i].setForeground(Color.GRAY);
+    	}
 		actionCommentLabel.setText("↓ユニットを配置してください↓");
 		actionCommentLabel.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 13));
-		actionCommentLabel.setBounds(1010,15,300,20);
+		actionCommentLabel.setBounds(1010, 15, 300, 20);
 		rangeDrawButton.setText("射程表示");
 		rangeDrawButton.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 15));
-		rangeDrawButton.setBounds(1010,475,100,40);
+		rangeDrawButton.setBounds(1010, 475, 100, 40);
 		rangeDrawButton.setFocusable(false);
 		pauseButton.setText("一時停止");
 		pauseButton.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 15));
-		pauseButton.setBounds(1110,475,100,40);
+		pauseButton.setBounds(1110, 475, 100, 40);
 		pauseButton.setFocusable(false);
-		g.drawImage(StageData.fieldImageList.get(0), 0, 0, this);
+		exit: for(int i = 0; i < StageData.existsfieldConditionsList.size(); i++) {
+			for(int j = 0; j < StageData.existsfieldConditionsList.get(i).size(); j++) {
+				if(!(StageData.existsfieldConditionsList.get(i).get(j) == existsActiveSoldierList.get(j + 1))) {
+					break;
+				}
+				if(j == StageData.existsfieldConditionsList.get(i).size() - 1) {
+					g.drawImage(StageData.fieldImageList.get(i), 0, 0, this);
+					break exit;
+				}
+			}
+		}
 		for(int i = 0; i < SoldierData.SOLDIER_IMAGE_LIST.size(); i += 2) {
 			g.drawImage(SoldierData.SOLDIER_IMAGE_LIST.get(i), 1015 + i % 4 * 50, 55 + i / 4 * 100, this);
 		}
@@ -1306,7 +1335,7 @@ class SoldierData{
 	final static List<List<Integer>> SOLDIER_STATUS_LIST = Arrays.asList(
 			Arrays.asList(1000, 1000, 100, 100, 30, 700, 1),//sord
 			Arrays.asList(700, 700, 70, 70, 60, 1000, 1),//spear
-			Arrays.asList(3000, 3000, 30, 300, 30, 1500, 3),//shield
+			Arrays.asList(3000, 3000, 30, 150, 30, 1500, 3),//shield
 			Arrays.asList(1000, 1000, 100, 100, 100, 500, 0),//dart
 			Arrays.asList(500, 500, 70, 70, 150, 1000, 0),//bow
 			Arrays.asList(800, 800, 150, 70, 200, 2000, 0),//gun
@@ -1323,10 +1352,10 @@ class SoldierData{
 			Arrays.asList(ValueRange.of(1135, 1190), ValueRange.of(380, 420)));//fan
 	final static List<String> CASTLE_NAME = Arrays.asList("image/soldier/castle.png");
 	final static List<BufferedImage> CASTLE_IMAGE = new InputImage().input(CASTLE_NAME);
-	final static List<Integer> CASTLE_STATUS = Arrays.asList(10000, 10000, 0, 20, 0, 0, 100000);
+	final static List<Integer> CASTLE_STATUS = Arrays.asList(20000, 10000, 0, 50, 0, 0, 100000);
 	final static List<String> GATE_NAME = Arrays.asList("image/soldier/castle gate.png");
 	final static List<BufferedImage> GATE_IMAGE = new InputImage().input(GATE_NAME);
-	final static List<Integer> GATE_STATUS = Arrays.asList(10000, 10000, 0, 10, 0, 0, 100000);
+	final static List<Integer> GATE_STATUS = Arrays.asList(10000, 10000, 0, 50, 0, 0, 100000);
 }
 
 //配置位置データ
@@ -1359,15 +1388,16 @@ class EnemyData{
 			"image/enemy/yellow slime action.png");
 	final static List<BufferedImage> ENEMY_IMAGE_LIST = new InputImage().input(ENEMY_NAME_LIST);
 	final static List<List<Integer>> ENEMY_STATUS_LIST = Arrays.asList(
-			Arrays.asList(1000, 1000, 20, 20, 20, 1000, 100),//0: blue slime
-			Arrays.asList(2000, 2000, 20, 20, 20, 1000, 100),//1: green slime
-			Arrays.asList(1000, 1000, 40, 20, 20, 1000, 100),//2: red slime
-			Arrays.asList(1000, 1000, 20, 20, 20, 1000, 50));//3: yellow slime
+			Arrays.asList(1000, 1000, 30, 30, 20, 1000, 100),//0: blue slime
+			Arrays.asList(2000, 2000, 30, 30, 20, 1000, 100),//1: green slime
+			Arrays.asList(1000, 1000, 60, 30, 20, 1000, 100),//2: red slime
+			Arrays.asList(1000, 1000, 30, 30, 20, 1000, 50));//3: yellow slime
 }
 
 //選択ステージデータ
 class StageData{
 	static List<BufferedImage> fieldImageList;
+	static List<List<Boolean>> existsfieldConditionsList;
 	static List<List<Integer>> facilityPlacementList;
 	static List<List<Integer>> nearUnitPlacementList;
 	static List<List<Integer>> farUnitPlacementList;
@@ -1383,6 +1413,7 @@ class StageData{
 //ステージデータ入力用 新ステージ実装時にextendsしてね
 abstract class Stage{
 	abstract protected List<BufferedImage> fieldImageList();
+	abstract protected List<List<Boolean>> existsfieldConditionsList();
 	abstract protected List<List<Integer>> facilityPlacementList();
 	abstract protected List<List<Integer>> nearUnitPlacementList();
 	abstract protected List<List<Integer>> farUnitPlacementList();
@@ -1392,6 +1423,7 @@ abstract class Stage{
 	
 	protected void importData() {
 		StageData.fieldImageList = fieldImageList();
+		StageData.existsfieldConditionsList = existsfieldConditionsList();
 		StageData.facilityPlacementList = facilityPlacementList();
 		StageData.nearUnitPlacementList = nearUnitPlacementList();
 		StageData.farUnitPlacementList = farUnitPlacementList();
@@ -1408,6 +1440,10 @@ class Stage1Data extends Stage{
 			"image/field/stage1-2.png",
 			"image/field/stage1-3.png");
 	List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList);
+	List<List<Boolean>> existsfieldConditionsList = Arrays.asList(
+			Arrays.asList(true, true),
+			Arrays.asList(false, true),
+			Arrays.asList(false, false));
 	List<List<Integer>> facilityPlacementList = Arrays.asList(
 			Arrays.asList(875, 53),
 			Arrays.asList(555, 260),
@@ -1457,6 +1493,10 @@ class Stage1Data extends Stage{
 		return fieldImageList;
 	}
 	@Override
+	protected List<List<Boolean>> existsfieldConditionsList() {
+		return existsfieldConditionsList;
+	}
+	@Override
 	protected List<List<Integer>> facilityPlacementList() {
 		return facilityPlacementList;
 	}
@@ -1487,6 +1527,7 @@ class Stage1Data extends Stage{
 キャラはパワポの点線1マスの大きさで作ること
 画像の背景はColor(254, 254 ,254)にする(この色が透明色に置き換わる)
 facilityPlacementListは 1項目に城位置 2項目以降に城門
+existsfieldConditionsListは①フィード画像番号, ②各城門の生存状況の順にリスト化
 キャラのステータスは 最大HP, 残存HP, 攻撃, 防御, 射程, 攻撃速度, 味方: 足止め数 敵: 移動速度 の順でリスト化
 回復役は攻撃力がマイナス表記
 unitNumber, enemyNumberは各statusListの配置順
