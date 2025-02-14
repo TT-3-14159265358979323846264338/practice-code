@@ -669,6 +669,8 @@ class Motion{
 	List<EnemyMove> EnemyMoveList;
 	int target;
 	int number;
+	long actionTime;
+	long delayTime;
 	
 	protected void motion(int number) {
 		this.number = number;
@@ -707,6 +709,7 @@ class SoldierMotion extends Motion implements ActionListener{
 		}else {
 			timer.stop();
 		}
+		timer.setInitialDelay(0);
 	}
 	
 	protected void timerRestart() {
@@ -716,6 +719,11 @@ class SoldierMotion extends Motion implements ActionListener{
 	protected boolean timerStop() {
 		if(timer.isRunning()) {
 			timer.stop();
+			delayTime = System.currentTimeMillis() - actionTime;
+			try {
+				timer.setInitialDelay(statusList.get(number).get(5) - (int) delayTime);
+			}catch(Exception ignore) {
+			}
 			return true;
 		}
 		return false;
@@ -742,6 +750,7 @@ class SoldierMotion extends Motion implements ActionListener{
 				statusList.get(target).set(1, Calculation.heal(statusList.get(number).get(2), statusList.get(target), true));
 			}
 		}
+		actionTime = System.currentTimeMillis();
 	}
 }
 
@@ -776,6 +785,7 @@ class EnemyMotion extends Motion implements ActionListener{
 		}else {
 			timer.stop();
 		}
+		timer.setInitialDelay(0);
 	}
 	
 	protected void timerRestart() {
@@ -785,6 +795,11 @@ class EnemyMotion extends Motion implements ActionListener{
 	protected boolean timerStop() {
 		if(timer.isRunning()) {
 			timer.stop();
+			delayTime = System.currentTimeMillis() - actionTime;
+			try {
+				timer.setInitialDelay(statusList.get(number).get(5) - (int) delayTime);
+			}catch(Exception ignore) {
+			}
 			return true;
 		}
 		return false;
@@ -812,6 +827,7 @@ class EnemyMotion extends Motion implements ActionListener{
 				statusList.get(target).set(1, Calculation.heal(statusList.get(number).get(2), statusList.get(target), false));
 			}
 		}
+		actionTime = System.currentTimeMillis();
 	}
 }
 
