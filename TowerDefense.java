@@ -132,14 +132,16 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	AttackJudgment AttackJudgment = new AttackJudgment();
 	UnitOperation UnitOperation = new UnitOperation();
 	CorrectionStatus CorrectionStatus = new CorrectionStatus();
+	static UpEffect UpEffect = new UpEffect();
 	JLabel categoryLabel[] = new JLabel[8];
-	JLabel actionCommentLabel = new JLabel();
+	JLabel soldierCostLabel[] = new JLabel[8];
+	JLabel costLabel = new JLabel();
 	JLabel residueEnemyLabel = new JLabel();
 	JButton rangeDrawButton = new JButton();
 	JButton pauseButton = new JButton();
 	
 	Timer timer;
-	long gameTime;
+	int gameTime;
 	List<Boolean> existsEnemyMotionTimerList = new ArrayList<>();
 	List<Boolean> existsEnemyMoveTimerList = new ArrayList<>();
 	static List<Boolean> existsSoldierMotionTimerList = new ArrayList<>();
@@ -162,14 +164,16 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	static List<List<Integer>> soldierStatusList = new ArrayList<>();
 	static List<List<Integer>> initialSoldierStatusList = new ArrayList<>();
 	static List<List<Integer>> correctionSoldierStatusList = new ArrayList<>();
+	static List<Integer> upNumberList = new ArrayList<>();
 	static List<List<Integer>> soldierPlacementList = new ArrayList<>();
 	static List<SoldierMotion> SoldierMotionList = new ArrayList<>();
 	
 	final static int UNIT_SIZE = 60;
 	final static int CORRECTION_POSITION = 15;
 	
-	static List<Hit> HitList = new ArrayList<>();
+	static List<HitEffect> HitList = new ArrayList<>();
 	static int hitNumber;
+	static int cost = 50;
 	static double soldierMorale = 100;
 	static double enemyMorale = 100;
 	double moraleDifference;
@@ -194,9 +198,11 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
     	for(int i = 0; i < categoryLabel.length; i++) {
     		categoryLabel[i] = new JLabel();
     		add(categoryLabel[i]);
+    		soldierCostLabel[i] = new JLabel();
+    		add(soldierCostLabel[i]);
     	}
     	add(residueEnemyLabel);
-    	add(actionCommentLabel);
+    	add(costLabel);
     	add(rangeDrawButton);
     	rangeDrawButton.addActionListener(e->{
     		existsRangeDisplay = (existsRangeDisplay)? false: true;
@@ -236,12 +242,13 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 				soldierStatusList.add(new ArrayList<>(SoldierData.GATE_STATUS));
 				initialSoldierStatusList.add(new ArrayList<>(SoldierData.GATE_STATUS));
 			}
-			correctionSoldierStatusList.add(Arrays.asList(0, 0, 0, 0, 0, 0, 0));
+			correctionSoldierStatusList.add(Arrays.asList(0, 0, 0, 0, 0, 0, 0, 0));
+			upNumberList.add(0);
 			soldierPlacementList.add(new ArrayList<>(StageData.facilityPlacementList.get(i)));
 			SoldierMotionList.add(new SoldierMotion(i, 0));
 		}
 		for(int i = 0; i < 100; i++) {
-			HitList.add(new Hit());
+			HitList.add(new HitEffect());
 		}
     }
     
@@ -255,7 +262,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
     	initialDraw(g);
 		enemyDraw(g);
 		soldierDraw(g);
-		hitDraw(g);
+		effectDraw(g);
 		placementDraw(g);
 		progressDataDraw(g);
 		gameEnd(g);
@@ -272,9 +279,11 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		for(int i = 0; i < SoldierData.UNIT_PLACEMENT_LIST.size(); i++) {
 			if(SoldierData.UNIT_PLACEMENT_LIST.get(i).get(0).isValidIntValue(mouseX)
 					&& SoldierData.UNIT_PLACEMENT_LIST.get(i).get(1).isValidIntValue(mouseY)){
-				unitNumber = i;
-				canSelect = true;
-	    		break;
+				if(SoldierData.SOLDIER_STATUS_LIST.get(i).get(7) <= cost) {
+					unitNumber = i;
+					canSelect = true;
+		    		break;
+				}
 	    	}
 		}
 		exit: while (true) {
@@ -397,10 +406,21 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 			categoryLabel[i].setFont(new Font("ＭＳ ゴシック", Font.BOLD, 18));
 			categoryLabel[i].setBounds(1065 + i % 2 * 100, 115 + i / 2 * 100, 100, 40);
 			categoryLabel[i].setForeground(Color.GRAY);
+			soldierCostLabel[i].setText("" + SoldierData.SOLDIER_STATUS_LIST.get(i).get(7));
+			soldierCostLabel[i].setFont(new Font("Araial", Font.BOLD, 18));
+			soldierCostLabel[i].setBounds(1015 + i % 2 * 100, 45 + i / 2 * 100, 100, 40);
+			if(SoldierData.SOLDIER_STATUS_LIST.get(i).get(7) <= cost) {
+				soldierCostLabel[i].setForeground(Color.RED);
+			}else {
+				soldierCostLabel[i].setForeground(Color.GRAY);
+			}
     	}
-		actionCommentLabel.setText("↓ユニットを配置してください↓");
-		actionCommentLabel.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 13));
-		actionCommentLabel.setBounds(1010, 15, 300, 20);
+		costLabel.setText("コスト: " + cost);
+		costLabel.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 20));
+		costLabel.setBounds(1010, 15, 150, 30);
+		costLabel.setBackground(Color.WHITE);
+		costLabel.setOpaque(true);
+		costLabel.setHorizontalAlignment(JLabel.CENTER);
 		rangeDrawButton.setText("射程表示");
 		rangeDrawButton.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 15));
 		rangeDrawButton.setBounds(1010, 475, 100, 40);
@@ -409,12 +429,12 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		pauseButton.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 15));
 		pauseButton.setBounds(1110, 475, 100, 40);
 		pauseButton.setFocusable(false);
-		exit: for(int i = 0; i < StageData.existsfieldConditionsList.size(); i++) {
-			for(int j = 0; j < StageData.existsfieldConditionsList.get(i).size(); j++) {
-				if(!(StageData.existsfieldConditionsList.get(i).get(j) == existsActiveSoldierList.get(j + 1))) {
+		exit: for(int i = 0; i < StageData.existsfieldConditionList.size(); i++) {
+			for(int j = 0; j < StageData.existsfieldConditionList.get(i).size(); j++) {
+				if(!(StageData.existsfieldConditionList.get(i).get(j) == existsActiveSoldierList.get(j + 1))) {
 					break;
 				}
-				if(j == StageData.existsfieldConditionsList.get(i).size() - 1) {
+				if(j == StageData.existsfieldConditionList.get(i).size() - 1) {
 					g.drawImage(StageData.fieldImageList.get(i), 0, 0, this);
 					break exit;
 				}
@@ -465,11 +485,12 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		}
 	}
 	
-	//攻撃描写
-	private void hitDraw(Graphics g) {
+	//エフェクト描写
+	private void effectDraw(Graphics g) {
 		for(int i = 0; i < 100; i++) {
 			HitList.get(i).hitDraw(g);
 		}
+		UpEffect.upDraw(g);
 	}
 	
 	//ユニット移動
@@ -498,7 +519,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		g.setColor(Color.RED);
 		g.fillRect(25, 525, (int) moraleDifference, 30);
 		g.setColor(Color.BLACK);
-		g.fillPolygon(new int[] {415,425,435}, new int[] {500,525,500}, 3);
+		g.fillPolygon(new int[] {415, 425, 435}, new int[] {500, 525, 500}, 3);
 		g.setColor(Color.WHITE);
 		g.drawRect(25, 525, 800, 30);
 		g.drawPolygon(new int[] {415,425,435}, new int[] {500,525,500}, 3);
@@ -567,9 +588,11 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 			soldierImageList.add(SoldierData.SOLDIER_IMAGE_LIST.get(unitNumber * 2));
 			soldierStatusList.add(new ArrayList<>(SoldierData.SOLDIER_STATUS_LIST.get(unitNumber)));
 			initialSoldierStatusList.add(new ArrayList<>(SoldierData.SOLDIER_STATUS_LIST.get(unitNumber)));
-			correctionSoldierStatusList.add(Arrays.asList(0, 0, 0, 0, 0, 0, 0));
+			correctionSoldierStatusList.add(Arrays.asList(0, 0, 0, 0, 0, 0, 0, 0));
+			upNumberList.add(0);
 			soldierPlacementList.add(Arrays.asList(placementList.get(0) - CORRECTION_POSITION, placementList.get(1) - CORRECTION_POSITION));
 			SoldierMotionList.add(new SoldierMotion(soldierStatusList.size() - 1, unitNumber));
+			cost -= SoldierData.SOLDIER_STATUS_LIST.get(unitNumber).get(7);
 			return true;
 		}
 		return false;
@@ -631,9 +654,6 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		for(int i = 0; i < EnemyMotionList.size(); i ++) {
 			existsEnemyMotionTimerList.add(EnemyMotionList.get(i).timerStop());
 			existsEnemyMoveTimerList.add(EnemyMoveList.get(i).timerStop());
-		}
-		for(Hit i: HitList) {
-			i.timerStop();
 		}
 		timer.stop();
 		removeMouseListener(this);
@@ -747,7 +767,7 @@ class SoldierMotion extends Motion implements ActionListener{
 			StagePanel.hitNumber++;
 			if(0 < statusList.get(number).get(2)) {
 				atack();
-			}else {
+			}else if(statusList.get(number).get(2) < 0){
 				heal();
 			}
 		}
@@ -756,10 +776,11 @@ class SoldierMotion extends Motion implements ActionListener{
 	
 	private void atack() {
 		anotherStatusList.get(target).set(1, Calculation.damage(statusList.get(number).get(2), anotherStatusList.get(target), true));
-		StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(target, false, true);
+		StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(StagePanel.enemyPlacementList.get(target), true);
 		if(anotherStatusList.get(target).get(1) <= 0) {
 			existsActiveAnotherList.set(target, false);
 			new DeleteBlock().deleteOne(target);
+			StagePanel.cost += anotherStatusList.get(target).get(7);
 			StagePanel.residueEnemy -= 1;
 			StagePanel.soldierMorale += (double) 100 / anotherStatusList.size();
 			AnotherMotionList.get(target).timerStop();
@@ -769,7 +790,7 @@ class SoldierMotion extends Motion implements ActionListener{
 	
 	private void heal() {
 		statusList.get(target).set(1, Calculation.heal(statusList.get(number).get(2), statusList.get(target), true));
-		StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(target, false, false);
+		StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(StagePanel.soldierPlacementList.get(target), false);
 	}
 }
 
@@ -835,7 +856,7 @@ class EnemyMotion extends Motion implements ActionListener{
 			StagePanel.hitNumber++;
 			if(0 < statusList.get(number).get(2)) {
 				atack();
-			}else {
+			}else if(statusList.get(number).get(2) < 0){
 				heal();
 			}
 		}
@@ -844,7 +865,7 @@ class EnemyMotion extends Motion implements ActionListener{
 	
 	private void atack() {
 		anotherStatusList.get(target).set(1, Calculation.damage(statusList.get(number).get(2), anotherStatusList.get(target), false));
-		StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(target, true, true);
+		StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(StagePanel.soldierPlacementList.get(target), true);
 		if(anotherStatusList.get(target).get(1) <= 0) {
 			existsActiveAnotherList.set(target, false);
 			new DeleteBlock().deleteAll(target);
@@ -855,7 +876,7 @@ class EnemyMotion extends Motion implements ActionListener{
 	
 	private void heal() {
 		statusList.get(target).set(1, Calculation.heal(statusList.get(number).get(2), statusList.get(target), false));
-		StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(target, true, false);
+		StagePanel.HitList.get(StagePanel.hitNumber % 100).timerStart(StagePanel.enemyPlacementList.get(target), false);
 	}
 }
 
@@ -1082,69 +1103,59 @@ class Calculation{
 }
 
 //攻撃描写
-class Hit implements ActionListener{
+class HitEffect implements ActionListener{
 	Timer timer;
-	int target;
-	boolean existsWhich;
-	boolean existsAtack;
+	boolean canAtack;
 	boolean canDraw;
 	List<Integer> placementList;
 	Random random = new Random();
-	int hitPointX;
-	int hitPointY;
+	int x;
+	int y;
 	BufferedImage image;
 	
-	protected Hit() {
+	protected HitEffect() {
 		timer = new Timer(200, this);
-		timer.setInitialDelay(0);
+		timer.setInitialDelay(200);
+		timer.setRepeats(false);
 	}
 	
-	protected void timerStart(int target, boolean existsWhich, boolean existsAtack) {
-		this.target = target;
-		this.existsWhich = existsWhich;
-		this.existsAtack = existsAtack;
-		canDraw = false;
-		timer.setRepeats(true);
+	protected void timerStart(List<Integer> placementList, boolean canAtack) {
+		this.placementList = placementList;
+		this.canAtack = canAtack;
+		canDraw = true;
 		timer.start();
-	}
-	
-	protected void timerStop() {
-		if(timer.isRunning()) {
-			timer.stop();
-		}
 	}
 	
 	protected void hitDraw(Graphics g) {
 		if(canDraw) {
 			draw(g);
 			draw(g);
-			timer.setRepeats(false);
 		}
 	}
 	
 	private void draw(Graphics g) {
-		placementList = (existsWhich == existsAtack)? StagePanel.soldierPlacementList.get(target): StagePanel.enemyPlacementList.get(target);
-		hitPointX = random.nextInt(StagePanel.UNIT_SIZE) + placementList.get(0);
-		hitPointY = random.nextInt(StagePanel.UNIT_SIZE) + placementList.get(1);
-		image = (existsAtack)? AtackData.HIT_IMAGE.get(0):AtackData.HEAL_IMAGE.get(0);
-		g.drawImage(image, hitPointX, hitPointY, null);
+		x = random.nextInt(StagePanel.UNIT_SIZE) + placementList.get(0);
+		y = random.nextInt(StagePanel.UNIT_SIZE) + placementList.get(1);
+		image = (canAtack)? AtackData.HIT_IMAGE.get(0):AtackData.HEAL_IMAGE.get(0);
+		g.drawImage(image, x, y, null);
 	}
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		canDraw = (canDraw)? false: true;
+		canDraw = false;
 	}
 }
 
 //ユニット操作
 class UnitOperation{
+	final static int UP_COST = 10;
+	final static int MAX_UP = 10;
 	List<Integer> statusList;
 	ImageIcon icon;
 	double ratio;
 	String atack;
 	String comment;
 	String block;
-	int operation;
 	String selectMenu[] = {"退却", "HP UP", "攻撃 UP", "防御 UP", "射程 UP"};
 	
 	protected int operation(int number, boolean existsWhich) {
@@ -1157,13 +1168,13 @@ class UnitOperation{
 		}
 		ratio = (double) statusList.get(1) / statusList.get(0) * 100;
 		if(0 <= statusList.get(2)) {
-			atack = "攻撃力";
+			atack = "攻撃力: ";
 		}else {
-			atack = "回復力";
+			atack = "回復力: ";
 		}
 		comment ="【ステータス】\n"
-				+ "HP: " + statusList.get(0) + " / " + statusList.get(1) + " (" + String.format("%.1f", ratio) + "%)\n"
-				+ atack + ": " + Math.abs(statusList.get(2)) + "\n"
+				+ "HP: " + statusList.get(1) + " / " + statusList.get(0) + " (" + String.format("%.1f", ratio) + "%)\n"
+				+ atack + Math.abs(statusList.get(2)) + "\n"
 				+ "防御力: " + statusList.get(3) + "\n"
 				+ "射程: " + statusList.get(4) + "\n"
 				+ "攻撃速度: " + statusList.get(5) + " ms";
@@ -1175,16 +1186,54 @@ class UnitOperation{
 			}
 			comment += "\n" + "足止め数: " + block;
 			if(statusList.get(4) == 0) {
-				operation = -1;
 				showOptionDialog(null, comment, "設備情報", OK_CANCEL_OPTION, PLAIN_MESSAGE, icon, null, null);
+				return -1;
 			}else {
-				operation = showOptionDialog(null, comment, "ユニット操作", OK_CANCEL_OPTION, PLAIN_MESSAGE, icon, selectMenu, selectMenu[0]);
+				comment += "\n" + "強化回数: " + StagePanel.upNumberList.get(number) + " / " + MAX_UP;
+				return showOptionDialog(null, comment, "ユニット操作", OK_CANCEL_OPTION, PLAIN_MESSAGE, icon, selectMenu, selectMenu[0]);
 			}
 		}else {
-			comment += "\n" + "移動速度: " + statusList.get(6) + " ms";
+			comment += "\n" + "移動速度: " + statusList.get(6) + " ms"
+					+ "\n" + "撃破コスト: " + statusList.get(7);
 			showOptionDialog(null, comment, "敵兵情報", OK_CANCEL_OPTION, PLAIN_MESSAGE, icon, null, null);
+			return -1;
 		}
-		return operation;
+	}
+}
+
+//能力向上
+class UpEffect implements ActionListener{
+	Timer timer;
+	boolean canDraw;
+	int x;
+	int y;
+	
+	protected UpEffect() {
+		timer = new Timer(200, this);
+		timer.setInitialDelay(1000);
+		timer.setRepeats(false);
+	}
+	
+	protected void timerStart(int number) {
+		x = StagePanel.soldierPlacementList.get(number).get(0);
+		y = StagePanel.soldierPlacementList.get(number).get(1);
+		canDraw = true;
+		timer.start();
+	}
+	
+	protected void upDraw(Graphics g) {
+		if(canDraw) {
+			g.setColor(Color.RED);
+			g.fillRect(x + 15, y + 30, 10, 30);
+			g.fillPolygon(new int[] {x + 10, x + 20, x + 30}, new int[] {y + 40, y + 20, y + 40}, 3);
+			g.fillRect(x + 60, y + 30, 10, 30);
+			g.fillPolygon(new int[] {x + 55, x + 65, x + 75}, new int[] {y + 40, y + 20, y + 40}, 3);
+		}
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		canDraw = false;
 	}
 }
 
@@ -1205,32 +1254,52 @@ class CorrectionStatus{
 	}
 	
 	protected void unitEnhancement(int number, int operation) {
+		if(!(operation == 0) && StagePanel.cost < UnitOperation.UP_COST) {
+			return;
+		}else if(UnitOperation.MAX_UP <= StagePanel.upNumberList.get(number)) {
+			return;
+		}
 		switch(operation){
 		case 0:
-			StagePanel.existsActiveSoldierList.set(number, false);
-			StagePanel.existsSoldierMotionTimerList.set(number, false);
-			StagePanel.SoldierMotionList.get(number).timerStop();
-			new DeleteBlock().deleteAll(number);
+			retreat(number);
 			break;
 		case 1:
+			statusUp(number);
 			StagePanel.initialSoldierStatusList.get(number).set(0, calculation(StagePanel.initialSoldierStatusList.get(number).get(0), 1.4));
 			break;
 		case 2:
 			if(StagePanel.initialSoldierStatusList.get(number).get(2) == 0) {
-				showMessageDialog(null,"このユニットの攻撃力は上がりません");
-			}else {
-				StagePanel.initialSoldierStatusList.get(number).set(2, calculation(StagePanel.initialSoldierStatusList.get(number).get(2), 1.2));
+				return;
 			}
+			statusUp(number);
+			StagePanel.initialSoldierStatusList.get(number).set(2, calculation(StagePanel.initialSoldierStatusList.get(number).get(2), 1.2));
 			break;
 		case 3:
+			statusUp(number);
 			StagePanel.initialSoldierStatusList.get(number).set(3, calculation(StagePanel.initialSoldierStatusList.get(number).get(3), 1.2));
 			break;
 		case 4:
+			statusUp(number);
 			StagePanel.initialSoldierStatusList.get(number).set(4, StagePanel.initialSoldierStatusList.get(number).get(4) + 30);
 			break;
 		default:
 			break;
 		}
+	}
+	
+	private void retreat(int number) {
+		value = (double) (StagePanel.upNumberList.get(number) * UnitOperation.UP_COST + StagePanel.soldierStatusList.get(number).get(7)) / 2;
+		StagePanel.cost += (int) value;
+		StagePanel.existsActiveSoldierList.set(number, false);
+		StagePanel.existsSoldierMotionTimerList.set(number, false);
+		StagePanel.SoldierMotionList.get(number).timerStop();
+		new DeleteBlock().deleteAll(number);
+	}
+	
+	private void statusUp(int number){
+		StagePanel.cost -= UnitOperation.UP_COST;
+		StagePanel.upNumberList.set(number, StagePanel.upNumberList.get(number) + 1);
+		StagePanel.UpEffect.timerStart(number);
 	}
 	
 	private int calculation(int status, double magnification) {
@@ -1333,14 +1402,14 @@ class SoldierData{
 			"image/soldier/fan action.png");
 	final static List<BufferedImage> SOLDIER_IMAGE_LIST = new InputImage().input(SOLDIER_NAME_LIST);
 	final static List<List<Integer>> SOLDIER_STATUS_LIST = Arrays.asList(
-			Arrays.asList(1000, 1000, 100, 100, 30, 700, 1),//sord
-			Arrays.asList(700, 700, 70, 70, 60, 1000, 1),//spear
-			Arrays.asList(3000, 3000, 30, 150, 30, 1500, 3),//shield
-			Arrays.asList(1000, 1000, 100, 100, 100, 500, 0),//dart
-			Arrays.asList(500, 500, 70, 70, 150, 1000, 0),//bow
-			Arrays.asList(800, 800, 150, 70, 200, 2000, 0),//gun
-			Arrays.asList(1000, 1000, -100, 100, 100, 1000, 0),//hammer
-			Arrays.asList(1000, 1000, 0, 100, 100, 1000, 0));//fan
+			Arrays.asList(1000, 1000, 100, 100, 30, 700, 1, 20),//sord
+			Arrays.asList(700, 700, 70, 70, 60, 1000, 1, 10),//spear
+			Arrays.asList(3000, 3000, 30, 200, 30, 1500, 3, 30),//shield
+			Arrays.asList(1000, 1000, 100, 60, 100, 500, 0, 15),//dart
+			Arrays.asList(500, 500, 70, 60, 150, 1000, 0, 10),//bow
+			Arrays.asList(1000, 1000, 150, 80, 200, 2000, 0, 30),//gun
+			Arrays.asList(1000, 1000, -100, 100, 100, 1000, 0, 25),//hammer
+			Arrays.asList(1000, 1000, 0, 100, 100, 1000, 0, 25));//fan
 	final static List<List<ValueRange>> UNIT_PLACEMENT_LIST = Arrays.asList(
 			Arrays.asList(ValueRange.of(1040, 1085), ValueRange.of(80, 125)),//sord
 			Arrays.asList(ValueRange.of(1140, 1185), ValueRange.of(80, 125)),//spear
@@ -1352,7 +1421,7 @@ class SoldierData{
 			Arrays.asList(ValueRange.of(1135, 1190), ValueRange.of(380, 420)));//fan
 	final static List<String> CASTLE_NAME = Arrays.asList("image/soldier/castle.png");
 	final static List<BufferedImage> CASTLE_IMAGE = new InputImage().input(CASTLE_NAME);
-	final static List<Integer> CASTLE_STATUS = Arrays.asList(20000, 10000, 0, 50, 0, 0, 100000);
+	final static List<Integer> CASTLE_STATUS = Arrays.asList(20000, 20000, 0, 50, 0, 0, 100000);
 	final static List<String> GATE_NAME = Arrays.asList("image/soldier/castle gate.png");
 	final static List<BufferedImage> GATE_IMAGE = new InputImage().input(GATE_NAME);
 	final static List<Integer> GATE_STATUS = Arrays.asList(10000, 10000, 0, 50, 0, 0, 100000);
@@ -1388,16 +1457,16 @@ class EnemyData{
 			"image/enemy/yellow slime action.png");
 	final static List<BufferedImage> ENEMY_IMAGE_LIST = new InputImage().input(ENEMY_NAME_LIST);
 	final static List<List<Integer>> ENEMY_STATUS_LIST = Arrays.asList(
-			Arrays.asList(1000, 1000, 30, 30, 20, 1000, 100),//0: blue slime
-			Arrays.asList(2000, 2000, 30, 30, 20, 1000, 100),//1: green slime
-			Arrays.asList(1000, 1000, 60, 30, 20, 1000, 100),//2: red slime
-			Arrays.asList(1000, 1000, 30, 30, 20, 1000, 50));//3: yellow slime
+			Arrays.asList(1000, 1000, 30, 30, 20, 1000, 100, 5),//0: blue slime
+			Arrays.asList(2000, 2000, 30, 30, 20, 1000, 100, 5),//1: green slime
+			Arrays.asList(1000, 1000, 60, 30, 20, 1000, 100, 5),//2: red slime
+			Arrays.asList(1000, 1000, 30, 30, 20, 1000, 50, 5));//3: yellow slime
 }
 
 //選択ステージデータ
 class StageData{
 	static List<BufferedImage> fieldImageList;
-	static List<List<Boolean>> existsfieldConditionsList;
+	static List<List<Boolean>> existsfieldConditionList;
 	static List<List<Integer>> facilityPlacementList;
 	static List<List<Integer>> nearUnitPlacementList;
 	static List<List<Integer>> farUnitPlacementList;
@@ -1413,7 +1482,7 @@ class StageData{
 //ステージデータ入力用 新ステージ実装時にextendsしてね
 abstract class Stage{
 	abstract protected List<BufferedImage> fieldImageList();
-	abstract protected List<List<Boolean>> existsfieldConditionsList();
+	abstract protected List<List<Boolean>> existsfieldConditionList();
 	abstract protected List<List<Integer>> facilityPlacementList();
 	abstract protected List<List<Integer>> nearUnitPlacementList();
 	abstract protected List<List<Integer>> farUnitPlacementList();
@@ -1423,7 +1492,7 @@ abstract class Stage{
 	
 	protected void importData() {
 		StageData.fieldImageList = fieldImageList();
-		StageData.existsfieldConditionsList = existsfieldConditionsList();
+		StageData.existsfieldConditionList = existsfieldConditionList();
 		StageData.facilityPlacementList = facilityPlacementList();
 		StageData.nearUnitPlacementList = nearUnitPlacementList();
 		StageData.farUnitPlacementList = farUnitPlacementList();
@@ -1440,7 +1509,7 @@ class Stage1Data extends Stage{
 			"image/field/stage1-2.png",
 			"image/field/stage1-3.png");
 	List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList);
-	List<List<Boolean>> existsfieldConditionsList = Arrays.asList(
+	List<List<Boolean>> existsfieldConditionList = Arrays.asList(
 			Arrays.asList(true, true),
 			Arrays.asList(false, true),
 			Arrays.asList(false, false));
@@ -1493,8 +1562,8 @@ class Stage1Data extends Stage{
 		return fieldImageList;
 	}
 	@Override
-	protected List<List<Boolean>> existsfieldConditionsList() {
-		return existsfieldConditionsList;
+	protected List<List<Boolean>> existsfieldConditionList() {
+		return existsfieldConditionList;
 	}
 	@Override
 	protected List<List<Integer>> facilityPlacementList() {
@@ -1528,7 +1597,7 @@ class Stage1Data extends Stage{
 画像の背景はColor(254, 254 ,254)にする(この色が透明色に置き換わる)
 facilityPlacementListは 1項目に城位置 2項目以降に城門
 existsfieldConditionsListは①フィード画像番号, ②各城門の生存状況の順にリスト化
-キャラのステータスは 最大HP, 残存HP, 攻撃, 防御, 射程, 攻撃速度, 味方: 足止め数 敵: 移動速度 の順でリスト化
+キャラのステータスは 最大HP, 残存HP, 攻撃, 防御, 射程, 攻撃速度, (味方: 足止め数 敵: 移動速度), (味方: 配置コスト 敵: 撃破時コスト増加) の順でリスト化
 回復役は攻撃力がマイナス表記
 unitNumber, enemyNumberは各statusListの配置順
 moveListは①List:経路Number, ②List:経路での移動変化順, ③List:x座標, y座標, までの移動方向コード(初期配置:0, ↑:1, →:3, ↓:5, ←:7)
