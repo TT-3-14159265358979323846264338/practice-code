@@ -139,6 +139,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	JLabel residueEnemyLabel = new JLabel();
 	JButton rangeDrawButton = new JButton();
 	JButton pauseButton = new JButton();
+	JButton setTargetButton = new JButton();
 	
 	Timer timer;
 	int gameTime;
@@ -184,6 +185,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	int mouseY;
 	int unitNumber;
 	int target;
+	int setTarget;
 	
 	boolean existsRangeDisplay = true;
 	boolean canPause;
@@ -217,7 +219,11 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
     		canPause = false;
     		restart();
     	});
-		mixNearUnitPlacementList = Stream.concat(StageData.nearUnitPlacementList.stream(), StageData.allUnitPlacementList.stream())
+    	add(setTargetButton);
+    	setTargetButton.addActionListener(e->{
+    		setTarget++;
+    	});		
+    	mixNearUnitPlacementList = Stream.concat(StageData.nearUnitPlacementList.stream(), StageData.allUnitPlacementList.stream())
 				.collect(Collectors.toList());
 		mixFarUnitPlacementList = Stream.concat(StageData.farUnitPlacementList.stream(), StageData.allUnitPlacementList.stream())
 				.collect(Collectors.toList());
@@ -261,12 +267,16 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
     	if(!canPause) {
     		reset(correctionSoldierStatusList);
     		reset(correctionEnemyStatusList);
-    		atack();
+    		soldierAtack();
+    		enemyAtack();
     		CorrectionStatus.correction(soldierStatusList, initialSoldierStatusList, correctionSoldierStatusList, existsActiveSoldierList);
     		CorrectionStatus.correction(enemyStatusList, initialEnemyStatusList, correctionEnemyStatusList, existsActiveEnemyList);
     	}
     	super.paintComponent(g);
-    	initialDraw(g);
+    	fieldDraw(g);
+    	fieldPlacementDraw(g);
+    	defaultSoldierDraw(g);
+    	actionBottunDraw(g);
 		enemyDraw(g);
 		soldierDraw(g);
 		effectDraw(g);
@@ -379,8 +389,8 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		repaint();
 	}
 	
-	//初期フィード表示
-	private void initialDraw(Graphics g) {
+	//初期フィード
+	private void fieldDraw(Graphics g) {
 		g.setColor(new Color(255, 220, 220));
 		g.fillRect(1010, 50, 200, 100);
 		g.fillRect(1010, 150, 100, 100);
@@ -400,6 +410,34 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		g.drawLine(1010, 250, 1210, 250);
 		g.drawLine(1010, 350, 1210, 350);
 		g.drawLine(1010, 450, 1210, 450);
+		exit: for(int i = 0; i < StageData.existsfieldConditionList.size(); i++) {
+			for(int j = 0; j < StageData.existsfieldConditionList.get(i).size(); j++) {
+				if(!(StageData.existsfieldConditionList.get(i).get(j) == existsActiveSoldierList.get(j + 1))) {
+					break;
+				}
+				if(j == StageData.existsfieldConditionList.get(i).size() - 1) {
+					g.drawImage(StageData.fieldImageList.get(i), 0, 0, this);
+					break exit;
+				}
+			}
+		}
+	}
+	
+	//配置位置
+	private void fieldPlacementDraw(Graphics g) {
+		for(List<Integer> i : StageData.nearUnitPlacementList) {
+			g.drawImage(PlacementData.PLACEMENT_IMAGE_LIST.get(0), i.get(0), i.get(1), this);
+		}
+		for(List<Integer> i : StageData.farUnitPlacementList) {
+			g.drawImage(PlacementData.PLACEMENT_IMAGE_LIST.get(1), i.get(0), i.get(1), this);
+		}
+		for(List<Integer> i : StageData.allUnitPlacementList) {
+			g.drawImage(PlacementData.PLACEMENT_IMAGE_LIST.get(2), i.get(0), i.get(1), this);
+		}
+	}
+	
+	//初期ユニット
+	private void defaultSoldierDraw(Graphics g) {
 		for(int i = 0; i < categoryLabel.length; i++) {
 			if(i < 3) {
 				categoryLabel[i].setText("近攻");
@@ -428,37 +466,40 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		costLabel.setBackground(Color.WHITE);
 		costLabel.setOpaque(true);
 		costLabel.setHorizontalAlignment(JLabel.CENTER);
-		rangeDrawButton.setText("射程表示");
-		rangeDrawButton.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 15));
-		rangeDrawButton.setBounds(1010, 475, 100, 40);
-		rangeDrawButton.setFocusable(false);
-		pauseButton.setText("一時停止");
-		pauseButton.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 15));
-		pauseButton.setBounds(1110, 475, 100, 40);
-		pauseButton.setFocusable(false);
-		exit: for(int i = 0; i < StageData.existsfieldConditionList.size(); i++) {
-			for(int j = 0; j < StageData.existsfieldConditionList.get(i).size(); j++) {
-				if(!(StageData.existsfieldConditionList.get(i).get(j) == existsActiveSoldierList.get(j + 1))) {
-					break;
-				}
-				if(j == StageData.existsfieldConditionList.get(i).size() - 1) {
-					g.drawImage(StageData.fieldImageList.get(i), 0, 0, this);
-					break exit;
-				}
-			}
-		}
 		for(int i = 0; i < SoldierData.SOLDIER_IMAGE_LIST.size(); i += 2) {
 			g.drawImage(SoldierData.SOLDIER_IMAGE_LIST.get(i), 1015 + i % 4 * 50, 55 + i / 4 * 100, this);
 		}
-		for(List<Integer> i : StageData.nearUnitPlacementList) {
-			g.drawImage(PlacementData.PLACEMENT_IMAGE_LIST.get(0), i.get(0), i.get(1), this);
+	}
+	
+	//操作ボタン
+	private void actionBottunDraw(Graphics g) {
+		rangeDrawButton.setText("射程表示");
+		rangeDrawButton.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 14));
+		rangeDrawButton.setBounds(1010, 465, 95, 40);
+		rangeDrawButton.setFocusable(false);
+		pauseButton.setText("一時停止");
+		pauseButton.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 14));
+		pauseButton.setBounds(1115, 465, 95, 40);
+		pauseButton.setFocusable(false);
+		switch(setTarget % 4) {
+		case 0:
+			setTargetButton.setText("距離 近");
+			break;
+		case 1:
+			setTargetButton.setText("距離 遠");
+			break;
+		case 2:
+			setTargetButton.setText("HP割合 低");
+			break;
+		case 3:
+			setTargetButton.setText("HP割合 高");
+			break;
+		default:
+			break;
 		}
-		for(List<Integer> i : StageData.farUnitPlacementList) {
-			g.drawImage(PlacementData.PLACEMENT_IMAGE_LIST.get(1), i.get(0), i.get(1), this);
-		}
-		for(List<Integer> i : StageData.allUnitPlacementList) {
-			g.drawImage(PlacementData.PLACEMENT_IMAGE_LIST.get(2), i.get(0), i.get(1), this);
-		}
+		setTargetButton.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 15));
+		setTargetButton.setBounds(1050, 515, 120, 40);
+		setTargetButton.setFocusable(false);
 	}
 	
 	//敵移動
@@ -614,14 +655,14 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		}
 	}
 	
-	//攻撃動作
-	private void atack() {
+	//ユニット攻撃動作
+	private void soldierAtack() {
 		for(int i = 0; i < existsActiveSoldierList.size(); i++) {
 			if(existsActiveSoldierList.get(i) && 0 < soldierStatusList.get(i).get(4)) {
 				if(0 < soldierStatusList.get(i).get(2)) {
-					target = AttackJudgment.judgmentNear(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, existsActiveEnemyList);
+					target = atackTarget(i);
 				}else if(soldierStatusList.get(i).get(2) < 0){
-					target = AttackJudgment.judgmentRatio(soldierPlacementList, existsActiveSoldierList, soldierStatusList, i);
+					target = AttackJudgment.judgmentHealLowRatio(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), soldierPlacementList, existsActiveSoldierList, soldierStatusList);
 				}else {
 					target = AttackJudgment.judgmentAll(soldierStatusList.get(i).get(4), soldierPlacementList, existsActiveSoldierList, i, 0);
 				}
@@ -632,12 +673,31 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 				}
 			}
 		}
+	}
+	
+	private int atackTarget(int i) {
+		switch(setTarget % 4) {
+		case 0:
+			return AttackJudgment.judgmentNear(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, existsActiveEnemyList);
+		case 1:
+			return AttackJudgment.judgmentFar(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, existsActiveEnemyList);
+		case 2:
+			return AttackJudgment.judgmentAtackLowRatio(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, existsActiveEnemyList, enemyStatusList);
+		case 3:
+			return AttackJudgment.judgmentHighRatio(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, existsActiveEnemyList, enemyStatusList);
+		default:
+			return -1;
+		}
+	}
+	
+	//敵攻撃動作
+	private void enemyAtack() {
 		for(int i = 0; i < existsActiveEnemyList.size(); i++) {
 			if(existsActiveEnemyList.get(i)) {
 				if(0 < enemyStatusList.get(i).get(2)) {
 					target = AttackJudgment.judgmentNear(enemyStatusList.get(i).get(4), enemyPlacementList.get(i), soldierPlacementList, existsActiveSoldierList);
 				}else if(enemyStatusList.get(i).get(2) < 0){
-					target = AttackJudgment.judgmentRatio(enemyPlacementList, existsActiveEnemyList, enemyStatusList, i);
+					target = AttackJudgment.judgmentHealLowRatio(enemyStatusList.get(i).get(4), enemyPlacementList.get(i), enemyPlacementList, existsActiveEnemyList, enemyStatusList);
 				}else {
 					target = AttackJudgment.judgmentAll(enemyStatusList.get(i).get(4), enemyPlacementList, existsActiveEnemyList, i, StageData.enemyList.get(i).get(0));
 				}
@@ -1018,57 +1078,67 @@ class EnemyMove implements ActionListener{
 //攻撃可否
 class AttackJudgment{
 	double distance;
-	double minDistance;
+	double newDistance;
 	double ratio;
-	double minRatio;
+	double newRatio;
 	int target;
 	
-	protected int judgmentNear(int atackRange, List<Integer> placement, List<List<Integer>> anotherPlacementList, List<Boolean> activeAnotherList) {
-		minDistance = 0;
+	protected int judgmentNear(int atackRange, List<Integer> placement, List<List<Integer>> anotherPlacementList, List<Boolean> activeList) {
+		newDistance = 123456789;
+		distance(true, atackRange, placement, anotherPlacementList, activeList);
+		return (newDistance == 123456789)? -1: target;
+	}
+	
+	protected int judgmentFar(int atackRange, List<Integer> placement, List<List<Integer>> anotherPlacementList, List<Boolean> activeList) {
+		newDistance = -1;
+		distance(false, atackRange, placement, anotherPlacementList, activeList);
+		return (newDistance == -1)? -1: target;
+	}
+	
+	private void distance(boolean isNear, int atackRange, List<Integer> placement, List<List<Integer>> anotherPlacementList, List<Boolean> activeList) {
 		for(int i = 0; i < anotherPlacementList.size(); i++) {
-			if(activeAnotherList.get(i)) {
-				distance = (double) Math.sqrt(Math.pow(placement.get(0) - anotherPlacementList.get(i).get(0), 2)
-						+ Math.pow(placement.get(1) - anotherPlacementList.get(i).get(1), 2));
-				if(minDistance == 0) {
-					minDistance = distance;
-					target = i;
-				}else {
-					if(distance < minDistance) {
-						minDistance = distance;
+			if(activeList.get(i)) {
+				distance = calculation(placement, anotherPlacementList.get(i));
+				if(distance <= atackRange + StagePanel.UNIT_SIZE) {
+					if((isNear)? distance <= newDistance: newDistance <= distance) {
+						newDistance = distance;
 						target = i;
 					}
 				}
 			}
-		}
-		if(minDistance == 0) {
-			return -1;
-		}else {
-			return (minDistance <= atackRange + StagePanel.UNIT_SIZE)? target: -1;
 		}
 	}
 	
-	protected int judgmentRatio(List<List<Integer>> placementList, List<Boolean> activeList, List<List<Integer>> statusList, int number) {
-		minRatio = 1;
-		for(int i = 0; i < placementList.size(); i++) {
+	protected int judgmentAtackLowRatio(int atackRange, List<Integer> placement, List<List<Integer>> anotherPlacementList, List<Boolean> activeList, List<List<Integer>> statusList) {
+		newRatio = 2;
+		ratio(true, atackRange, placement, anotherPlacementList, activeList, statusList);
+		return (newRatio == 2)? -1: target;
+	}
+	
+	protected int judgmentHealLowRatio(int atackRange, List<Integer> placement, List<List<Integer>> anotherPlacementList, List<Boolean> activeList, List<List<Integer>> statusList) {
+		newRatio = 1;
+		ratio(true, atackRange, placement, anotherPlacementList, activeList, statusList);
+		return (newRatio == 1)? -1: target;
+	}
+	
+	protected int judgmentHighRatio(int atackRange, List<Integer> placement, List<List<Integer>> anotherPlacementList, List<Boolean> activeList, List<List<Integer>> statusList) {
+		newRatio = 0;
+		ratio(false, atackRange, placement, anotherPlacementList, activeList, statusList);
+		return (newRatio == 0)? -1: target;
+	}
+	
+	private void ratio(boolean isLow, int atackRange, List<Integer> placement, List<List<Integer>> anotherPlacementList, List<Boolean> activeList, List<List<Integer>> statusList) {
+		for(int i = 0; i < anotherPlacementList.size(); i++) {
 			if(activeList.get(i)) {
-				distance = (double) Math.sqrt(Math.pow(placementList.get(number).get(0) - placementList.get(i).get(0), 2)
-						+ Math.pow(placementList.get(number).get(1) - placementList.get(i).get(1), 2));
-				if(distance <= statusList.get(number).get(4) + StagePanel.UNIT_SIZE) {
-					if(statusList.get(number).get(2) == 0) {
-						return i;
-					}
+				distance = calculation(placement, anotherPlacementList.get(i));
+				if(distance <= atackRange + StagePanel.UNIT_SIZE) {
 					ratio = (double) statusList.get(i).get(1) / statusList.get(i).get(0);
-					if(ratio < minRatio) {
-						minRatio = ratio;
+					if((isLow)? ratio < newRatio : newRatio <= ratio) {
+						newRatio = ratio;
 						target = i;
 					}
 				}
 			}
-		}
-		if(minRatio == 1) {
-			return -1;
-		}else {
-			return target;
 		}
 	}
 	
@@ -1076,8 +1146,7 @@ class AttackJudgment{
 		target = -1;
 		for(int i = 0; i < placementList.size(); i++) {
 			if(activeList.get(i) && !(number == i)) {
-				distance = (double) Math.sqrt(Math.pow(placementList.get(number).get(0) - placementList.get(i).get(0), 2)
-						+ Math.pow(placementList.get(number).get(1) - placementList.get(i).get(1), 2));
+				distance = calculation(placementList.get(number), placementList.get(i));
 				if(distance <= atackRange + StagePanel.UNIT_SIZE) {
 					selectBuff(charaNumber, i);
 					target = i;
@@ -1098,6 +1167,10 @@ class AttackJudgment{
 		default:
 			break;
 		}
+	}
+	
+	private double calculation(List<Integer> placementList, List<Integer> anotherPlacementList) {
+		return (double) Math.sqrt(Math.pow(placementList.get(0) - anotherPlacementList.get(0), 2) + Math.pow(placementList.get(1) - anotherPlacementList.get(1), 2));
 	}
 }
 
