@@ -4,4 +4,4 @@
 3. 将棋　branch: shogi-image
 4. タワーディフェンス　branch: towerdefwnce-enemy-image  
 　　　　　　　　            　　　towerdefwnce-field-image  
-　　　　　　　　　　           　towerdefwnce-soldier-image  
+　　　　　　　　　　            　towerdefwnce-soldier-image  
