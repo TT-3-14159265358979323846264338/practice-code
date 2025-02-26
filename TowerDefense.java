@@ -39,7 +39,7 @@ public class TowerDefense{
 	public static void main(String[] args) {
         JFrame mainFrame = new JFrame("タワーディフェンス");
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        mainFrame.setSize(600, 200);
+        mainFrame.setSize(600, 160);
         mainFrame.setResizable(false);
         mainFrame.setLocationRelativeTo(null);
         mainFrame.add(new MainPanel());
@@ -52,7 +52,7 @@ class MainPanel extends JPanel{
 	JButton stageSelectButton1 = new JButton();
 	JButton stageSelectButton2 = new JButton();
 	JButton stageSelectButton3 = new JButton();
-	Font font = new Font("ＭＳ ゴシック", Font.BOLD, 20);
+	Font font = new Font("Araial", Font.BOLD, 20);
 	
 	//画面の設定
     protected MainPanel() {
@@ -97,17 +97,26 @@ class MainPanel extends JPanel{
     private void buttonSet() {
     	stageSelectButton1.setText("Stage1");
     	stageSelectButton1.setFont(font);
-    	stageSelectButton1.setBounds(20,50,100,100);
+    	stageSelectButton1.setBounds(20,50,100,60);
+    	stageSelectButton1.setForeground(Color.RED);
+    	stageSelectButton1.setIcon(new ImageIcon(new InputImage().input(Stage1Data.fieldNameList.get(0), 20)));
+    	stageSelectButton1.setHorizontalTextPosition(JButton.CENTER);
+    	stageSelectButton1.setVerticalTextPosition(JButton.CENTER);
     	stageSelectButton1.setFocusable(false);
     	
     	stageSelectButton2.setText("Stage2");
     	stageSelectButton2.setFont(font);
-    	stageSelectButton2.setBounds(140,50,100,100);
+    	stageSelectButton2.setBounds(140,50,100,60);
+    	stageSelectButton2.setForeground(Color.RED);
+    	stageSelectButton2.setIcon(new ImageIcon(new InputImage().input(Stage2Data.fieldNameList.get(0), 20)));
+    	stageSelectButton2.setHorizontalTextPosition(JButton.CENTER);
+    	stageSelectButton2.setVerticalTextPosition(JButton.CENTER);
     	stageSelectButton2.setFocusable(false);
     	
     	stageSelectButton3.setText("Stage3");
     	stageSelectButton3.setFont(font);
-    	stageSelectButton3.setBounds(260,50,100,100);
+    	stageSelectButton3.setBounds(260,50,100,60);
+    	stageSelectButton3.setForeground(Color.RED);
     	stageSelectButton3.setFocusable(false);
     }
 }
@@ -244,11 +253,11 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		for(int i = 0; i < StageData.facilityPlacementList.size(); i++) {
 			existsActiveSoldierList.add(true);
 			if(i == 0) {
-				soldierImageList.add(SoldierData.CASTLE_IMAGE.get(0));
+				soldierImageList.add(SoldierData.CASTLE_IMAGE);
 				soldierStatusList.add(new ArrayList<>(SoldierData.CASTLE_STATUS));
 				initialSoldierStatusList.add(new ArrayList<>(SoldierData.CASTLE_STATUS));
 			}else {
-				soldierImageList.add(SoldierData.GATE_IMAGE.get(0));
+				soldierImageList.add(SoldierData.GATE_IMAGE);
 				soldierStatusList.add(new ArrayList<>(SoldierData.GATE_STATUS));
 				initialSoldierStatusList.add(new ArrayList<>(SoldierData.GATE_STATUS));
 			}
@@ -1474,10 +1483,18 @@ class InputImage{
 	BufferedImage resizeImage;
 	BufferedImage finalImage;
 	
-	protected List<BufferedImage> input(List<String> imageNameList){
+	protected BufferedImage input(String imageName, int ratio) {
+		try{
+			image = editImage(ImageIO.read(new File(imageName)), ratio);
+		}catch(Exception input) {
+		}
+		return image;
+	}
+	
+	protected List<BufferedImage> input(List<String> imageNameList, int ratio){
 		try{
 			for(String i : imageNameList) {
-				image = editImage(ImageIO.read(new File(i)));
+				image = editImage(ImageIO.read(new File(i)), ratio);
 				imageList.add(image);
 			}
 		}catch(Exception input) {
@@ -1486,9 +1503,9 @@ class InputImage{
 	}
 	
 	//画像処理
-	private BufferedImage editImage(BufferedImage originalImage) {
-		resizeWidth = originalImage.getWidth() / 2;
-		resizeHeight = originalImage.getHeight() / 2;
+	private BufferedImage editImage(BufferedImage originalImage, int ratio) {
+		resizeWidth = originalImage.getWidth() / ratio;
+		resizeHeight = originalImage.getHeight() / ratio;
 		resizeImage = new BufferedImage(resizeWidth, resizeHeight, BufferedImage.TYPE_3BYTE_BGR);
 		resizeImage.createGraphics().drawImage(
 	    	originalImage.getScaledInstance(resizeWidth, resizeHeight, Image.SCALE_AREA_AVERAGING),
@@ -1527,7 +1544,7 @@ class SoldierData{
 			"image/soldier/hammer action.png",
 			"image/soldier/fan normal.png",
 			"image/soldier/fan action.png");
-	final static List<BufferedImage> SOLDIER_IMAGE_LIST = new InputImage().input(SOLDIER_NAME_LIST);
+	final static List<BufferedImage> SOLDIER_IMAGE_LIST = new InputImage().input(SOLDIER_NAME_LIST, 2);
 	final static List<List<Integer>> SOLDIER_STATUS_LIST = Arrays.asList(
 			Arrays.asList(1000, 1000, 100, 100, 30, 700, 1, 20),//sord
 			Arrays.asList(700, 700, 100, 70, 100, 1000, 1, 10),//spear
@@ -1546,11 +1563,11 @@ class SoldierData{
 			Arrays.asList(ValueRange.of(1140, 1180), ValueRange.of(280, 320)),//gun
 			Arrays.asList(ValueRange.of(1035, 1085), ValueRange.of(375, 425)),//hammer
 			Arrays.asList(ValueRange.of(1135, 1190), ValueRange.of(380, 420)));//fan
-	final static List<String> CASTLE_NAME = Arrays.asList("image/soldier/castle.png");
-	final static List<BufferedImage> CASTLE_IMAGE = new InputImage().input(CASTLE_NAME);
+	final static String CASTLE_NAME = "image/soldier/castle.png";
+	final static BufferedImage CASTLE_IMAGE = new InputImage().input(CASTLE_NAME, 2);
 	final static List<Integer> CASTLE_STATUS = Arrays.asList(20000, 20000, 0, 50, 0, 0, 100000);
-	final static List<String> GATE_NAME = Arrays.asList("image/soldier/castle gate.png");
-	final static List<BufferedImage> GATE_IMAGE = new InputImage().input(GATE_NAME);
+	final static String GATE_NAME = "image/soldier/castle gate.png";
+	final static BufferedImage GATE_IMAGE = new InputImage().input(GATE_NAME, 2);
 	final static List<Integer> GATE_STATUS = Arrays.asList(10000, 10000, 0, 50, 0, 0, 100000);
 }
 
@@ -1560,15 +1577,15 @@ class PlacementData{
 			"image/soldier/near placement.png",
 			"image/soldier/far placement.png",
 			"image/soldier/all placement.png");
-	final static List<BufferedImage> PLACEMENT_IMAGE_LIST = new InputImage().input(PLACEMENT_NAME_LIST);
+	final static List<BufferedImage> PLACEMENT_IMAGE_LIST = new InputImage().input(PLACEMENT_NAME_LIST, 2);
 }
 
 //攻撃画像
 class AtackData{
 	final static List<String> HIT_NAME = Arrays.asList("image/soldier/hit.png");
-	final static List<BufferedImage> HIT_IMAGE = new InputImage().input(HIT_NAME);
+	final static List<BufferedImage> HIT_IMAGE = new InputImage().input(HIT_NAME, 2);
 	final static List<String> HEAL_NAME = Arrays.asList("image/soldier/heal.png");
-	final static List<BufferedImage> HEAL_IMAGE = new InputImage().input(HEAL_NAME);
+	final static List<BufferedImage> HEAL_IMAGE = new InputImage().input(HEAL_NAME, 2);
 }
 
 //敵軍データ
@@ -1599,7 +1616,7 @@ class EnemyData{
 			"image/enemy/thunder turtle normal.png",
 			"image/enemy/thunder turtle action.png"
 			);
-	final static List<BufferedImage> ENEMY_IMAGE_LIST = new InputImage().input(ENEMY_NAME_LIST);
+	final static List<BufferedImage> ENEMY_IMAGE_LIST = new InputImage().input(ENEMY_NAME_LIST, 2);
 	final static List<List<Integer>> ENEMY_STATUS_LIST = Arrays.asList(
 			Arrays.asList(1000, 1000, 30, 30, 20, 1000, 100, 5),//0: blue slime
 			Arrays.asList(2000, 2000, 30, 30, 20, 1000, 100, 5),//1: green slime
@@ -1657,11 +1674,11 @@ abstract class Stage{
 
 //Stage1データ
 class Stage1Data extends Stage{
-	List<String> fieldNameList = Arrays.asList(
+	static List<String> fieldNameList = Arrays.asList(
 			"image/field/stage1-1.png",
 			"image/field/stage1-2.png",
 			"image/field/stage1-3.png");
-	List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList);
+	List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList, 2);
 	List<List<Boolean>> existsfieldConditionList = Arrays.asList(
 			Arrays.asList(true, true),
 			Arrays.asList(false, true),
@@ -1768,7 +1785,7 @@ class Stage1Data extends Stage{
 
 //ステージ2データ
 class Stage2Data extends Stage{
-	List<String> fieldNameList = Arrays.asList(
+	static List<String> fieldNameList = Arrays.asList(
 			"image/field/stage2-1.png",
 			"image/field/stage2-2.png",
 			"image/field/stage2-3.png",
@@ -1776,7 +1793,7 @@ class Stage2Data extends Stage{
 			"image/field/stage2-5.png",
 			"image/field/stage2-6.png",
 			"image/field/stage2-7.png");
-	List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList);
+	List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList, 2);
 	List<List<Boolean>> existsfieldConditionList = Arrays.asList(
 			Arrays.asList(true, true, true),
 			Arrays.asList(false, true, true),
@@ -1964,9 +1981,9 @@ enemyListは enemyNumber, 経路Number, 出撃タイミング (100 = 1 s) の順
 
 //デフォルトのステージクラス
 class StageDefault extends Stage{
-	List<String> fieldNameList = Arrays.asList(
+	static List<String> fieldNameList = Arrays.asList(
 			);
-	List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList);
+	List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList, 2);
 	List<List<Boolean>> existsfieldConditionList = Arrays.asList(
 			);
 	List<List<Integer>> facilityPlacementList = Arrays.asList(
