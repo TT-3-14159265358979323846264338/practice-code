@@ -78,7 +78,8 @@ class MainPanel extends JPanel{
     		new StageFrame();
     	});
     	stageSelectButton2.addActionListener(e->{
-    		showMessageDialog(null,"現在調整中");
+    		new Stage2Data().importData();
+    		new StageFrame();
     	});
     	stageSelectButton3.addActionListener(e->{
     		showMessageDialog(null,"現在調整中");
@@ -282,6 +283,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		placementDraw(g);
 		progressDataDraw(g);
 		gameEnd(g);
+		//test(g);
     }
     
     //ユニット操作
@@ -485,16 +487,16 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		pauseButton.setFocusable(false);
 		switch(setTarget % 4) {
 		case 0:
-			setTargetButton.setText("距離 近");
-			break;
-		case 1:
-			setTargetButton.setText("距離 遠");
-			break;
-		case 2:
 			setTargetButton.setText("HP割合 低");
 			break;
-		case 3:
+		case 1:
 			setTargetButton.setText("HP割合 高");
+			break;
+		case 2:
+			setTargetButton.setText("距離 近");
+			break;
+		case 3:
+			setTargetButton.setText("距離 遠");
 			break;
 		default:
 			break;
@@ -512,7 +514,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 				EnemyMoveList.get(i).moveStart();
 			}else if(existsActiveEnemyList.get(i)) {
 				if(existsRangeDisplay) {
-					rangeDraw(g, enemyPlacementList.get(i), enemyStatusList.get(i));
+					rangeDraw(g, enemyPlacementList.get(i), enemyStatusList.get(i).get(4));
 				}
 				HPDraw(g, enemyStatusList.get(i), enemyPlacementList.get(i));
 				g.drawImage(enemyImageList.get(i), enemyPlacementList.get(i).get(0), enemyPlacementList.get(i).get(1), this);
@@ -526,7 +528,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 			if(existsActiveSoldierList.get(i)) {
 				if(0 < soldierStatusList.get(i).get(4)) {
 					if(existsRangeDisplay) {
-						rangeDraw(g, soldierPlacementList.get(i), soldierStatusList.get(i));
+						rangeDraw(g, soldierPlacementList.get(i), soldierStatusList.get(i).get(4));
 					}
 					g.drawImage(soldierImageList.get(i), soldierPlacementList.get(i).get(0), soldierPlacementList.get(i).get(1), this);
 				}
@@ -546,6 +548,7 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	//ユニット移動
 	private void placementDraw(Graphics g) {
 		if(canSelect) {
+			rangeDraw(g, Arrays.asList(mouseX - 50, mouseY - 50), SoldierData.SOLDIER_STATUS_LIST.get(unitNumber).get(4));
 			g.drawImage(SoldierData.SOLDIER_IMAGE_LIST.get(unitNumber * 2), mouseX - 50, mouseY - 50, this);
 		}
 	}
@@ -610,13 +613,19 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 		}
 	}
 	
+	//テスト用
+	private void test(Graphics g) {
+		g.setFont(new Font("ＭＳ ゴシック", Font.BOLD, 20));
+		g.drawString("" + gameTime, 1170, 40);
+	}
+	
 	//射程表示
-	private void rangeDraw(Graphics g, List<Integer> placementList, List<Integer> statusList) {
+	private void rangeDraw(Graphics g, List<Integer> placementList, int range) {
 		g.setColor(new Color(255, 0, 0, 20));
-		g.fillOval(placementList.get(0) + CORRECTION_POSITION - statusList.get(4),
-				placementList.get(1) + CORRECTION_POSITION - statusList.get(4),
-				statusList.get(4) * 2 + UNIT_SIZE,
-				statusList.get(4) * 2 + UNIT_SIZE);
+		g.fillOval(placementList.get(0) + CORRECTION_POSITION - range,
+				placementList.get(1) + CORRECTION_POSITION - range,
+				range * 2 + UNIT_SIZE,
+				range * 2 + UNIT_SIZE);
 	}
 	
 	//HP表示
@@ -686,13 +695,13 @@ class StagePanel extends JPanel implements MouseListener, MouseMotionListener, A
 	private int atackTarget(int i) {
 		switch(setTarget % 4) {
 		case 0:
-			return AttackJudgment.judgmentNear(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, existsActiveEnemyList);
-		case 1:
-			return AttackJudgment.judgmentFar(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, existsActiveEnemyList);
-		case 2:
 			return AttackJudgment.judgmentAtackLowRatio(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, existsActiveEnemyList, enemyStatusList);
-		case 3:
+		case 1:
 			return AttackJudgment.judgmentHighRatio(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, existsActiveEnemyList, enemyStatusList);
+		case 2:
+			return AttackJudgment.judgmentNear(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, existsActiveEnemyList);
+		case 3:
+			return AttackJudgment.judgmentFar(soldierStatusList.get(i).get(4), soldierPlacementList.get(i), enemyPlacementList, existsActiveEnemyList);
 		default:
 			return -1;
 		}
@@ -1262,7 +1271,8 @@ class UnitOperation{
 	String atack;
 	String comment;
 	String block;
-	String selectMenu[] = {"退却", "HP UP", "攻撃 UP", "防御 UP", "射程 UP"};
+	String retreatMenu[] = {"退却"};
+	String fullMenu[] = {"退却", "HP UP", "攻撃 UP", "防御 UP", "射程 UP"};
 	
 	protected int operation(int number, boolean existsWhich) {
 		if(existsWhich) {
@@ -1296,7 +1306,10 @@ class UnitOperation{
 				return -1;
 			}else {
 				comment += "\n" + "強化回数: " + StagePanel.upNumberList.get(number) + " / " + MAX_UP;
-				return showOptionDialog(null, comment, "ユニット操作", OK_CANCEL_OPTION, PLAIN_MESSAGE, icon, selectMenu, selectMenu[0]);
+				if(StagePanel.cost < UP_COST || MAX_UP <= StagePanel.upNumberList.get(number)) {
+					return showOptionDialog(null, comment, "ユニット操作", OK_CANCEL_OPTION, PLAIN_MESSAGE, icon, retreatMenu, retreatMenu[0]);
+				}
+				return showOptionDialog(null, comment, "ユニット操作", OK_CANCEL_OPTION, PLAIN_MESSAGE, icon, fullMenu, fullMenu[0]);
 			}
 		}else {
 			comment += "\n" + "移動速度: " + statusList.get(6) + " ms"
@@ -1324,17 +1337,15 @@ class CorrectionStatus{
 	}
 	
 	protected void unitEnhancement(int number, int operation) {
-		if(!(operation == 0) && StagePanel.cost < UnitOperation.UP_COST) {
-			return;
-		}else if(UnitOperation.MAX_UP <= StagePanel.upNumberList.get(number)) {
-			return;
-		}
 		switch(operation){
 		case 0:
 			retreat(number);
 			break;
 		case 1:
 			statusUp(number);
+			StagePanel.soldierStatusList.get(number).set(1, StagePanel.soldierStatusList.get(number).get(1)
+					+ calculation(StagePanel.initialSoldierStatusList.get(number).get(0), 1.2)
+					- StagePanel.initialSoldierStatusList.get(number).get(0));
 			StagePanel.initialSoldierStatusList.get(number).set(0, calculation(StagePanel.initialSoldierStatusList.get(number).get(0), 1.2));
 			break;
 		case 2:
@@ -1358,7 +1369,7 @@ class CorrectionStatus{
 	}
 	
 	private void retreat(int number) {
-		value = (double) (StagePanel.upNumberList.get(number) * UnitOperation.UP_COST + StagePanel.soldierStatusList.get(number).get(7)) / 2;
+		value = (double) (StagePanel.upNumberList.get(number) * UnitOperation.UP_COST + StagePanel.soldierStatusList.get(number).get(7)) * 4 / 5;
 		StagePanel.cost += (int) value;
 		StagePanel.existsActiveSoldierList.set(number, false);
 		StagePanel.existsSoldierMotionTimerList.set(number, false);
@@ -1519,11 +1530,11 @@ class SoldierData{
 	final static List<BufferedImage> SOLDIER_IMAGE_LIST = new InputImage().input(SOLDIER_NAME_LIST);
 	final static List<List<Integer>> SOLDIER_STATUS_LIST = Arrays.asList(
 			Arrays.asList(1000, 1000, 100, 100, 30, 700, 1, 20),//sord
-			Arrays.asList(700, 700, 100, 70, 60, 1000, 1, 10),//spear
+			Arrays.asList(700, 700, 100, 70, 100, 1000, 1, 10),//spear
 			Arrays.asList(3000, 3000, 30, 200, 30, 1500, 5, 30),//shield
-			Arrays.asList(1000, 1000, 70, 70, 100, 700, 0, 20),//dart
+			Arrays.asList(750, 750, 70, 70, 100, 700, 0, 20),//dart
 			Arrays.asList(500, 500, 50, 50, 150, 1000, 0, 10),//bow
-			Arrays.asList(1000, 1000, 150, 80, 200, 2000, 0, 30),//gun
+			Arrays.asList(1000, 1000, 150, 80, 200, 1500, 0, 30),//gun
 			Arrays.asList(1000, 1000, -75, 100, 100, 1000, 0, 25),//hammer
 			Arrays.asList(1000, 1000, 0, 100, 100, 1000, 0, 25));//fan
 	final static List<List<ValueRange>> UNIT_PLACEMENT_LIST = Arrays.asList(
@@ -1755,6 +1766,188 @@ class Stage1Data extends Stage{
 	}
 }
 
+//ステージ2データ
+class Stage2Data extends Stage{
+	List<String> fieldNameList = Arrays.asList(
+			"image/field/stage2-1.png",
+			"image/field/stage2-2.png",
+			"image/field/stage2-3.png",
+			"image/field/stage2-4.png",
+			"image/field/stage2-5.png",
+			"image/field/stage2-6.png",
+			"image/field/stage2-7.png");
+	List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList);
+	List<List<Boolean>> existsfieldConditionList = Arrays.asList(
+			Arrays.asList(true, true, true),
+			Arrays.asList(false, true, true),
+			Arrays.asList(false, true, false),
+			Arrays.asList(true, false, true),
+			Arrays.asList(true, false, false),
+			Arrays.asList(false, false, true),
+			Arrays.asList(false, false, false));
+	List<List<Integer>> facilityPlacementList = Arrays.asList(
+			Arrays.asList(727, 53),
+			Arrays.asList(395, 20),
+			Arrays.asList(187, 315),
+			Arrays.asList(880, 340));
+	List<List<Integer>> nearUnitPlacementList = Arrays.asList(
+			Arrays.asList(84, 47),
+			Arrays.asList(203, 47),
+			Arrays.asList(320, 47),
+			Arrays.asList(502, 167),
+			Arrays.asList(502, 278),
+			Arrays.asList(12, 420),
+			Arrays.asList(84, 340),
+			Arrays.asList(440, 340),
+			Arrays.asList(560, 340),
+			Arrays.asList(560, 451),
+			Arrays.asList(678, 451),
+			Arrays.asList(800, 451),
+			Arrays.asList(915, 451));
+	List<List<Integer>> farUnitPlacementList = Arrays.asList(
+			Arrays.asList(411, 167),
+			Arrays.asList(320, 212),
+			Arrays.asList(203, 400),
+			Arrays.asList(380, 400),
+			Arrays.asList(290, 498),
+			Arrays.asList(380, 498),
+			Arrays.asList(650, 107),
+			Arrays.asList(650, 222),
+			Arrays.asList(740, 318));
+	List<List<Integer>> allUnitPlacementList = Arrays.asList(
+			Arrays.asList(502, 47),
+			Arrays.asList(320, 340),
+			Arrays.asList(915, 222),
+			Arrays.asList(800, 222),
+			Arrays.asList(740, 167));
+	List<List<List<Integer>>> moveList = Arrays.asList(
+			Arrays.asList(Arrays.asList(0, 30, 0),//経路: 0
+					Arrays.asList(487, 30, 3),
+					Arrays.asList(487, 320, 5),
+					Arrays.asList(550, 320, 3),
+					Arrays.asList(550, 432, 5),
+					Arrays.asList(885, 432, 3),
+					Arrays.asList(885, 205, 1),
+					Arrays.asList(720, 205, 7),
+					Arrays.asList(720, 120, 1)),
+			Arrays.asList(Arrays.asList(0, 490, 0),//経路: 1
+					Arrays.asList(0, 320, 1),
+					Arrays.asList(550, 320, 3),
+					Arrays.asList(550, 432, 5),
+					Arrays.asList(885, 432, 3),
+					Arrays.asList(885, 205, 1),
+					Arrays.asList(720, 205, 7),
+					Arrays.asList(720, 120, 1)
+					));
+	List<List<Integer>> enemyList = Arrays.asList(
+			Arrays.asList(0, 0, 50),
+			Arrays.asList(0, 0, 100),
+			Arrays.asList(0, 0, 150),
+			Arrays.asList(0, 0, 200),
+			Arrays.asList(1, 0, 600),
+			Arrays.asList(1, 0, 650),
+			Arrays.asList(1, 0, 1100),
+			Arrays.asList(4, 0, 1120),
+			Arrays.asList(1, 0, 1150),
+			Arrays.asList(4, 0, 1170),
+			Arrays.asList(3, 0, 1800),
+			Arrays.asList(3, 0, 1850),
+			Arrays.asList(3, 0, 1900),
+			Arrays.asList(0, 0, 2600),
+			Arrays.asList(0, 0, 2620),
+			Arrays.asList(0, 0, 2640),
+			Arrays.asList(0, 0, 2660),
+			Arrays.asList(0, 0, 2680),
+			Arrays.asList(0, 0, 2700),
+			Arrays.asList(0, 0, 2720),
+			Arrays.asList(0, 0, 2740),
+			Arrays.asList(3, 0, 3000),
+			Arrays.asList(3, 0, 3050),
+			Arrays.asList(3, 0, 3100),
+			Arrays.asList(3, 0, 3150),
+			Arrays.asList(9, 0, 3500),
+			Arrays.asList(9, 0, 3550),
+			Arrays.asList(7, 0, 3600),
+			Arrays.asList(7, 0, 3650),
+			Arrays.asList(8, 0, 4300),
+			Arrays.asList(8, 0, 4350),
+			Arrays.asList(5, 0, 4400),
+			Arrays.asList(1, 0, 4800),
+			Arrays.asList(1, 0, 4900),
+			Arrays.asList(1, 0, 5000),
+			Arrays.asList(1, 0, 5100),
+			Arrays.asList(1, 0, 5200),
+			Arrays.asList(1, 0, 5300),
+			Arrays.asList(1, 0, 5400),
+			Arrays.asList(1, 0, 5500),
+			Arrays.asList(1, 0, 5600),
+			Arrays.asList(1, 0, 5700),
+			Arrays.asList(11, 0, 6000),
+			Arrays.asList(11, 0, 6500),
+			
+			Arrays.asList(6, 1, 10),
+			Arrays.asList(2, 1, 50),
+			Arrays.asList(2, 1, 100),
+			Arrays.asList(2, 1, 150),
+			Arrays.asList(2, 1, 200),
+			Arrays.asList(9, 1, 1500),
+			Arrays.asList(9, 1, 1550),
+			Arrays.asList(3, 1, 2000),
+			Arrays.asList(3, 1, 2050),
+			Arrays.asList(3, 1, 2100),
+			Arrays.asList(8, 1, 3000),
+			Arrays.asList(8, 1, 3050),
+			Arrays.asList(8, 1, 3100),
+			Arrays.asList(9, 1, 4000),
+			Arrays.asList(9, 1, 4050),
+			Arrays.asList(2, 1, 4800),
+			Arrays.asList(2, 1, 4900),
+			Arrays.asList(2, 1, 5000),
+			Arrays.asList(2, 1, 5100),
+			Arrays.asList(2, 1, 5200),
+			Arrays.asList(2, 1, 5300),
+			Arrays.asList(2, 1, 5400),
+			Arrays.asList(2, 1, 5500),
+			Arrays.asList(2, 1, 5600),
+			Arrays.asList(2, 1, 5700),
+			Arrays.asList(11, 1, 6000),
+			Arrays.asList(11, 1, 6500)
+			);
+	
+	@Override
+	protected List<BufferedImage> fieldImageList() {
+		return fieldImageList;
+	}
+	@Override
+	protected List<List<Boolean>> existsfieldConditionList() {
+		return existsfieldConditionList;
+	}
+	@Override
+	protected List<List<Integer>> facilityPlacementList() {
+		return facilityPlacementList;
+	}
+	@Override
+	protected List<List<Integer>> nearUnitPlacementList() {
+		return nearUnitPlacementList;
+	}
+	@Override
+	protected List<List<Integer>> farUnitPlacementList() {
+		return farUnitPlacementList;
+	}
+	@Override
+	protected List<List<Integer>> allUnitPlacementList() {
+		return allUnitPlacementList;
+	}
+	@Override
+	protected List<List<List<Integer>>> moveList() {
+		return moveList;
+	}
+	@Override
+	protected List<List<Integer>> enemyList() {
+		return enemyList;
+	}
+}
+
 /*
 ステージはパワポの1画面の大きさ
 キャラはパワポの点線1マスの大きさで作ること
@@ -1762,8 +1955,63 @@ class Stage1Data extends Stage{
 facilityPlacementListは 1項目に城位置 2項目以降に城門
 existsfieldConditionsListは①フィード画像番号, ②各城門の生存状況の順にリスト化
 キャラのステータスは 最大HP, 残存HP, 攻撃, 防御, 射程, 攻撃速度, (味方: 足止め数 敵: 移動速度), (味方: 配置コスト 敵: 撃破時コスト増加) の順でリスト化
-回復役は攻撃力がマイナス表記
+回復役は攻撃力がマイナス表記, 支援役は攻撃力 0
 unitNumber, enemyNumberは各statusListの配置順
 moveListは①List:経路Number, ②List:経路での移動変化順, ③List:x座標, y座標, までの移動方向コード(初期配置:0, ↑:1, →:3, ↓:5, ←:7)
 enemyListは enemyNumber, 経路Number, 出撃タイミング (100 = 1 s) の順でリスト化
+新ステージ実装時は下の class StageDefault をコピーしてね
 */
+
+//デフォルトのステージクラス
+class StageDefault extends Stage{
+	List<String> fieldNameList = Arrays.asList(
+			);
+	List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList);
+	List<List<Boolean>> existsfieldConditionList = Arrays.asList(
+			);
+	List<List<Integer>> facilityPlacementList = Arrays.asList(
+			);
+	List<List<Integer>> nearUnitPlacementList = Arrays.asList(
+			);
+	List<List<Integer>> farUnitPlacementList = Arrays.asList(
+			);
+	List<List<Integer>> allUnitPlacementList = Arrays.asList(
+			);
+	List<List<List<Integer>>> moveList = Arrays.asList(
+			);
+	List<List<Integer>> enemyList = Arrays.asList(
+			);
+	
+	@Override
+	protected List<BufferedImage> fieldImageList() {
+		return fieldImageList;
+	}
+	@Override
+	protected List<List<Boolean>> existsfieldConditionList() {
+		return existsfieldConditionList;
+	}
+	@Override
+	protected List<List<Integer>> facilityPlacementList() {
+		return facilityPlacementList;
+	}
+	@Override
+	protected List<List<Integer>> nearUnitPlacementList() {
+		return nearUnitPlacementList;
+	}
+	@Override
+	protected List<List<Integer>> farUnitPlacementList() {
+		return farUnitPlacementList;
+	}
+	@Override
+	protected List<List<Integer>> allUnitPlacementList() {
+		return allUnitPlacementList;
+	}
+	@Override
+	protected List<List<List<Integer>>> moveList() {
+		return moveList;
+	}
+	@Override
+	protected List<List<Integer>> enemyList() {
+		return enemyList;
+	}
+}
