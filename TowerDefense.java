@@ -53,6 +53,7 @@ class MainPanel extends JPanel{
 	JButton stageSelectButton2 = new JButton();
 	JButton stageSelectButton3 = new JButton();
 	Font font = new Font("Araial", Font.BOLD, 20);
+	boolean canStart = true;
 	
 	//画面の設定
     protected MainPanel() {
@@ -74,15 +75,25 @@ class MainPanel extends JPanel{
     //ステージ選択
     private void buttonAction() {
     	stageSelectButton1.addActionListener(e->{
-    		new Stage1Data().importData();
-    		new StageFrame();
+    		if(canStart) {
+    			canStart = false;
+    			new Stage1Data().importData();
+        		new StageFrame();
+    		}
     	});
     	stageSelectButton2.addActionListener(e->{
-    		new Stage2Data().importData();
-    		new StageFrame();
+    		if(canStart) {
+    			canStart = false;
+    			new Stage2Data().importData();
+        		new StageFrame();
+    		}
     	});
     	stageSelectButton3.addActionListener(e->{
-    		showMessageDialog(null,"現在調整中");
+    		if(canStart) {
+    			canStart = false;
+    			new Stage3Data().importData();
+        		new StageFrame();
+    		}
     	});
     }
     
@@ -117,6 +128,9 @@ class MainPanel extends JPanel{
     	stageSelectButton3.setFont(font);
     	stageSelectButton3.setBounds(260,50,100,60);
     	stageSelectButton3.setForeground(Color.RED);
+    	stageSelectButton3.setIcon(new ImageIcon(new InputImage().input(Stage3Data.fieldNameList.get(0), 20)));
+    	stageSelectButton3.setHorizontalTextPosition(JButton.CENTER);
+    	stageSelectButton3.setVerticalTextPosition(JButton.CENTER);
     	stageSelectButton3.setFocusable(false);
     }
 }
@@ -1260,7 +1274,7 @@ class HitEffect implements ActionListener{
 	private void draw(Graphics g) {
 		x = random.nextInt(StagePanel.UNIT_SIZE) + placementList.get(0);
 		y = random.nextInt(StagePanel.UNIT_SIZE) + placementList.get(1);
-		image = (canAtack)? AtackData.HIT_IMAGE.get(0):AtackData.HEAL_IMAGE.get(0);
+		image = (canAtack)? AtackData.HIT_IMAGE:AtackData.HEAL_IMAGE;
 		g.drawImage(image, x, y, null);
 	}
 	
@@ -1582,10 +1596,10 @@ class PlacementData{
 
 //攻撃画像
 class AtackData{
-	final static List<String> HIT_NAME = Arrays.asList("image/soldier/hit.png");
-	final static List<BufferedImage> HIT_IMAGE = new InputImage().input(HIT_NAME, 2);
-	final static List<String> HEAL_NAME = Arrays.asList("image/soldier/heal.png");
-	final static List<BufferedImage> HEAL_IMAGE = new InputImage().input(HEAL_NAME, 2);
+	final static String HIT_NAME = "image/soldier/hit.png";
+	final static BufferedImage HIT_IMAGE = new InputImage().input(HIT_NAME, 2);
+	final static String HEAL_NAME = "image/soldier/heal.png";
+	final static BufferedImage HEAL_IMAGE = new InputImage().input(HEAL_NAME, 2);
 }
 
 //敵軍データ
@@ -1614,7 +1628,23 @@ class EnemyData{
 			"image/enemy/heal tree normal.png",
 			"image/enemy/heal tree action.png",
 			"image/enemy/thunder turtle normal.png",
-			"image/enemy/thunder turtle action.png"
+			"image/enemy/thunder turtle action.png",
+			"image/enemy/blue bird normal.png",
+			"image/enemy/blue bird action.png",
+			"image/enemy/green bird normal.png",
+			"image/enemy/green bird action.png",
+			"image/enemy/red bird normal.png",
+			"image/enemy/red bird action.png",
+			"image/enemy/yellow bird normal.png",
+			"image/enemy/yellow bird action.png",
+			"image/enemy/green bee normal.png",
+			"image/enemy/green bee action.png",
+			"image/enemy/red bee normal.png",
+			"image/enemy/red bee action.png",
+			"image/enemy/yellow bee normal.png",
+			"image/enemy/yellow bee action.png",
+			"image/enemy/flame dragon normal.png",
+			"image/enemy/flame dragon action.png"
 			);
 	final static List<BufferedImage> ENEMY_IMAGE_LIST = new InputImage().input(ENEMY_NAME_LIST, 2);
 	final static List<List<Integer>> ENEMY_STATUS_LIST = Arrays.asList(
@@ -1629,7 +1659,15 @@ class EnemyData{
 			Arrays.asList(1500, 1500, 200, 80, 30, 1400, 150, 10),//8: knight
 			Arrays.asList(1000, 1000, 300, 60, 50, 800, 150, 10),//9: double sord
 			Arrays.asList(10000, 10000, -20, 10, 500, 1000, 3000, 20),//10: heal tree
-			Arrays.asList(10000, 10000, 1200, 100, 50, 1000, 100, 30)//11: thunder turtle
+			Arrays.asList(10000, 10000, 1200, 100, 50, 1000, 100, 30),//11: thunder turtle
+			Arrays.asList(500, 500, 30, 30, 20, 1000, 100, 5),//12: blue bird
+			Arrays.asList(1000, 1000, 30, 30, 20, 1000, 100, 5),//13: green bird
+			Arrays.asList(500, 500, 60, 30, 20, 1000, 100, 5),//14: red bird
+			Arrays.asList(500, 500, 30, 30, 20, 1000, 50, 5),//15: yellow bird
+			Arrays.asList(1500, 1000, 100, 90, 50, 800, 150, 10),//16: green bee
+			Arrays.asList(1000, 1000, 150, 70, 50, 800, 150, 10),//17: red bee
+			Arrays.asList(1000, 1000, 100, 70, 50, 800, 75, 10),//18: yellow bee
+			Arrays.asList(5000, 5000, 400, 100, 100, 1000, 100, 30)//19: flame dragon
 			);
 }
 
@@ -1854,8 +1892,7 @@ class Stage2Data extends Stage{
 					Arrays.asList(885, 432, 3),
 					Arrays.asList(885, 205, 1),
 					Arrays.asList(720, 205, 7),
-					Arrays.asList(720, 120, 1)
-					));
+					Arrays.asList(720, 120, 1)));
 	List<List<Integer>> enemyList = Arrays.asList(
 			Arrays.asList(0, 0, 50),
 			Arrays.asList(0, 0, 100),
@@ -1928,8 +1965,185 @@ class Stage2Data extends Stage{
 			Arrays.asList(2, 1, 5600),
 			Arrays.asList(2, 1, 5700),
 			Arrays.asList(11, 1, 6000),
-			Arrays.asList(11, 1, 6500)
-			);
+			Arrays.asList(11, 1, 6500));
+	
+	@Override
+	protected List<BufferedImage> fieldImageList() {
+		return fieldImageList;
+	}
+	@Override
+	protected List<List<Boolean>> existsfieldConditionList() {
+		return existsfieldConditionList;
+	}
+	@Override
+	protected List<List<Integer>> facilityPlacementList() {
+		return facilityPlacementList;
+	}
+	@Override
+	protected List<List<Integer>> nearUnitPlacementList() {
+		return nearUnitPlacementList;
+	}
+	@Override
+	protected List<List<Integer>> farUnitPlacementList() {
+		return farUnitPlacementList;
+	}
+	@Override
+	protected List<List<Integer>> allUnitPlacementList() {
+		return allUnitPlacementList;
+	}
+	@Override
+	protected List<List<List<Integer>>> moveList() {
+		return moveList;
+	}
+	@Override
+	protected List<List<Integer>> enemyList() {
+		return enemyList;
+	}
+}
+
+//ステージ3
+class Stage3Data extends Stage{
+	static List<String> fieldNameList = Arrays.asList(
+			"image/field/stage3-1.png",
+			"image/field/stage3-2.png",
+			"image/field/stage3-3.png",
+			"image/field/stage3-4.png");
+	List<BufferedImage> fieldImageList = new InputImage().input(fieldNameList, 2);
+	List<List<Boolean>> existsfieldConditionList = Arrays.asList(
+			Arrays.asList(true, true),
+			Arrays.asList(false, true),
+			Arrays.asList(true, false),
+			Arrays.asList(false, false));
+	List<List<Integer>> facilityPlacementList = Arrays.asList(
+			Arrays.asList(603, 200),
+			Arrays.asList(310, 330),
+			Arrays.asList(100, 20));
+	List<List<Integer>> nearUnitPlacementList = Arrays.asList(
+			Arrays.asList(445, 460),
+			Arrays.asList(325, 460),
+			Arrays.asList(28, 169),
+			Arrays.asList(28, 47),
+			Arrays.asList(265, 230),
+			Arrays.asList(205, 169),
+			Arrays.asList(325, 47),
+			Arrays.asList(445, 47));
+	List<List<Integer>> farUnitPlacementList = Arrays.asList(
+			Arrays.asList(205, 320),
+			Arrays.asList(445, 320),
+			Arrays.asList(116, 169),
+			Arrays.asList(482, 230),
+			Arrays.asList(482, 108),
+			Arrays.asList(383, 108),
+			Arrays.asList(765, 47),
+			Arrays.asList(765, 169));
+	List<List<Integer>> allUnitPlacementList = Arrays.asList(
+			Arrays.asList(205, 460),
+			Arrays.asList(383, 230),
+			Arrays.asList(205, 47),
+			Arrays.asList(560, 47),
+			Arrays.asList(680, 47),
+			Arrays.asList(620, 108));
+	List<List<List<Integer>>> moveList = Arrays.asList(
+			Arrays.asList(Arrays.asList(920, 445, 0),//経路: 0
+					Arrays.asList(310, 445, 7),
+					Arrays.asList(310, 215, 1),
+					Arrays.asList(190, 215, 7),
+					Arrays.asList(190, 32, 1),
+					Arrays.asList(605, 32, 3),
+					Arrays.asList(605, 220, 5)),
+			Arrays.asList(Arrays.asList(0, 245, 0),//経路: 1
+					Arrays.asList(13, 245, 3),
+					Arrays.asList(13, 32, 1),
+					Arrays.asList(605, 32, 3),
+					Arrays.asList(605, 220, 5)),
+			Arrays.asList(Arrays.asList(610, 485, 0),//経路: 2
+					Arrays.asList(910, 185, 2),
+					Arrays.asList(735, 10, 8),
+					Arrays.asList(605, 140, 6),
+					Arrays.asList(605, 220, 5)),
+			Arrays.asList(Arrays.asList(0, 400, 0),//経路: 3
+					Arrays.asList(400, 0, 2),
+					Arrays.asList(605, 205, 4)));
+	List<List<Integer>> enemyList = Arrays.asList(
+			Arrays.asList(0, 0, 50),
+			Arrays.asList(0, 0, 100),
+			Arrays.asList(0, 0, 150),
+			Arrays.asList(0, 0, 200),
+			Arrays.asList(1, 0, 700),
+			Arrays.asList(1, 0, 750),
+			Arrays.asList(2, 0, 800),
+			Arrays.asList(2, 0, 850),
+			Arrays.asList(3, 0, 1200),
+			Arrays.asList(3, 0, 1250),
+			Arrays.asList(8, 0, 1700),
+			Arrays.asList(8, 0, 1750),
+			Arrays.asList(8, 0, 2000),
+			Arrays.asList(8, 0, 2050),
+			Arrays.asList(6, 0, 2400),
+			Arrays.asList(10, 0, 2450),
+			Arrays.asList(7, 0, 2500),
+			Arrays.asList(9, 0, 2550),
+			Arrays.asList(7, 0, 2600),
+			Arrays.asList(9, 0, 2650),
+			Arrays.asList(7, 0, 2700),
+			Arrays.asList(9, 0, 2750),
+			Arrays.asList(11, 0, 3300),
+			
+			Arrays.asList(0, 1, 50),
+			Arrays.asList(0, 1, 100),
+			Arrays.asList(0, 1, 150),
+			Arrays.asList(0, 1, 200),
+			Arrays.asList(1, 1, 700),
+			Arrays.asList(1, 1, 750),
+			Arrays.asList(2, 1, 800),
+			Arrays.asList(2, 1, 850),
+			Arrays.asList(3, 1, 1200),
+			Arrays.asList(3, 1, 1250),
+			Arrays.asList(8, 1, 1700),
+			Arrays.asList(8, 1, 1750),
+			Arrays.asList(8, 1, 2000),
+			Arrays.asList(8, 1, 2050),
+			Arrays.asList(6, 1, 2400),
+			Arrays.asList(10, 1, 2450),
+			Arrays.asList(7, 1, 2500),
+			Arrays.asList(7, 1, 2550),
+			Arrays.asList(11, 1, 3300),
+			
+			Arrays.asList(12, 2, 1200),
+			Arrays.asList(12, 2, 1250),
+			Arrays.asList(14, 2, 1500),
+			Arrays.asList(14, 2, 1550),
+			Arrays.asList(15, 2, 1800),
+			Arrays.asList(15, 2, 1850),
+			Arrays.asList(17, 2, 2100),
+			Arrays.asList(17, 2, 2150),
+			Arrays.asList(18, 2, 2500),
+			Arrays.asList(18, 2, 2550),
+			Arrays.asList(18, 2, 2600),
+			Arrays.asList(18, 2, 2650),
+			Arrays.asList(18, 2, 2900),
+			Arrays.asList(18, 2, 2950),
+			Arrays.asList(18, 2, 3000),
+			Arrays.asList(18, 2, 3050),
+			Arrays.asList(19, 2, 3300),
+			
+			Arrays.asList(12, 3, 1200),
+			Arrays.asList(12, 3, 1250),
+			Arrays.asList(13, 3, 1500),
+			Arrays.asList(13, 3, 1550),
+			Arrays.asList(15, 3, 1800),
+			Arrays.asList(15, 3, 1850),
+			Arrays.asList(17, 3, 2100),
+			Arrays.asList(17, 3, 2150),
+			Arrays.asList(16, 3, 2500),
+			Arrays.asList(16, 3, 2550),
+			Arrays.asList(16, 3, 2600),
+			Arrays.asList(16, 3, 2650),
+			Arrays.asList(18, 3, 2900),
+			Arrays.asList(18, 3, 2950),
+			Arrays.asList(18, 3, 3000),
+			Arrays.asList(18, 3, 3050),
+			Arrays.asList(19, 3, 3300));
 	
 	@Override
 	protected List<BufferedImage> fieldImageList() {
